@@ -3,7 +3,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import ElementNotInteractableException
 from datetime import datetime
-from pprint import pprint
 from collections import defaultdict
 import time
 
@@ -34,25 +33,26 @@ class AutoClicker:
         chrome_options.add_argument(r'user-data-dir=C:\Users\SharipovRR\AppData\Local\Google\Chrome\User Data')
         self.browser = wb.Chrome(options=chrome_options)
 
-    def upload_routes(self):
+    def download_routes(self, dwn_window):
         if self.routes:
             self.routes.clear()
-            print('Словарь очищен!')
-
-        table_rows = self.browser.find_element(By.ID, 'myData').find_elements(By.TAG_NAME, 'tr')
-        for i, row in enumerate(table_rows[1:]):
-            values = [el.text for el in row.find_elements(By.TAG_NAME, 'td')]
-            route = values[1]
-            bus_numb = values[2].replace(' ', '')
-            datetime_from = datetime.strptime(values[3], '%Y-%m-%d %H:%M')
-            routes.append({
-                'route': route,
-                'bus_numb': bus_numb,
-                'start_time': datetime_from
-            })
-            link_obj = row.find_element(By.TAG_NAME, 'a')
-            self.routes[route][bus_numb][datetime_from] = link_obj
-            print(f'Рейс{i} загружен')
+        # table_rows = self.browser.find_element(By.ID, 'myData').find_elements(By.TAG_NAME, 'tr')[1:]
+        table_rows = [i for i in range(100000)]
+        step_value = len(table_rows)//10
+        counter = step_value
+        for i, row in enumerate(table_rows):
+            counter -= 1
+            if not counter:
+                dwn_window.event_generate('<<Updated>>', when='tail')
+                time.sleep(0.3)
+                counter = step_value
+        dwn_window.end()
+            # values = [el.text for el in row.find_elements(By.TAG_NAME, 'td')]
+            # route = values[1]
+            # bus_numb = values[2].replace(' ', '')
+            # datetime_from = datetime.strptime(values[3], '%Y-%m-%d %H:%M')
+            # link_obj = row.find_element(By.TAG_NAME, 'a')
+            # self.routes[route][bus_numb][datetime_from] = link_obj
 
     def pause(self):
         self.state = 0

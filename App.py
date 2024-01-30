@@ -302,7 +302,7 @@ class Table(ttk.Treeview):
             route = flight['route']
             values = (date, route, flight['direction'], flight['start_time'],
                       flight['finish_time'], flight['bus_numb'], '', '', position, 0,
-                      flight['row_numb'], 'white_colored')
+                      flight['row_numb'], 'white_colored', flight['route_numb'])
             self.insert('', 'end', values=values, iid=str(counter))
         self.table_size = counter + 1
         if self.table_size:
@@ -400,6 +400,40 @@ class LoadWindow(tk.Toplevel):
     def end(self):
         self.destroy()
         table.fill_out_table(rd)
+
+    def update_progressbar(self, event):
+        cur_value = self.progress_var.get()
+        self.progress_var.set(cur_value + 10)
+
+
+class DownloadWindow(tk.Toplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.root = root
+        self.geometry("700x250")
+        self.title('Загрузка рейсов')
+        self.resizable(False, False)
+        self.grab_set()
+        self.frame_1 = ttk.Frame(self, padding=3)
+        self.progress_var = tk.IntVar(value=0)
+        self.progress_text_var = tk.StringVar(value='Загрузка рейсов с РНИС...')
+        self.progressbar = ttk.Progressbar(self.frame_1, orient="horizontal", length=500, variable=self.progress_var,
+                                           style='TProgressbar')
+        self.res_label = ttk.Label(self.frame_1, textvariable=self.progress_text_var, justify='left')
+        self.bind('<<Updated>>', self.update_progressbar)
+        self.pack_widgets()
+
+    def pack_widgets(self):
+        self.res_label.grid(row=0, column=0)
+        self.progressbar.grid(row=1, column=0, columnspan=4, padx=70)
+        self.frame_1.grid(row=0, columnspan=3, pady=60)
+
+    def update_progressbar(self, event):
+        cur_value = self.progress_var.get()
+        self.progress_var.set(cur_value + 10)
+
+    def end(self):
+        self.destroy()
 
 
 class ResultPanel:
@@ -556,9 +590,10 @@ class Reader:
         self.total = 0
         self.report_type = None
 
-    def read(self, load_window: LoadWindow):
+    def read(self):
         self.wb = openpyxl.load_workbook(self.file_path)
         self.report_type = load_window.combobox_value.get()
+        load_window.progress_text_var.set(f'Загрузка файла...')
         sheet = self.wb.active
         counter = 0
         step = sheet.max_row//10
@@ -567,8 +602,8 @@ class Reader:
             counter += 1
             step_counter -= 1
             if step_counter == 0:
-                update_progressbar(load_window)
-                time.sleep(0.05)
+                root.event_generate('<<Updated>>', when='tail')
+                time.sleep(0.5)
                 step_counter = 0
             if type(row[2].value) == datetime.datetime and row[18].value is None:
                 self.total += 1
@@ -589,7 +624,7 @@ class Reader:
                 )
 
         load_window.progress_text_var.set(f'Файл {self.file_path} прочитан')
-        # load_window.progress_var.set(100)
+        load_window.progress_var.set(100)
         load_window.ok_btn['state'] = 'normal'
         activate_buttons()
 
@@ -684,9 +719,15 @@ def get_datetime_obj(date_st, time_st):
     return datetime_obj
 
 
-def update_progressbar(load_window):
-    cur_value = load_window.progress_var.get()
-    load_window.progress_var.set(cur_value + 10)
+def new_window():
+    global load_window
+    load_window = LoadWindow(root)
+    load_window.set()
+
+
+def download_routes():
+    dwn_window = DownloadWindow()
+    table.autoclicker.download_routes(dwn_window)
 
 
 load_window = None
@@ -732,7 +773,7 @@ button_style.configure("mystyle.TButton",
 
 columns = ("date", 'route', "direction", "start", 'finish',
            'bus_numb', 'screen', 'screen_path', 'position', 'edited',
-           'row_id', 'colour')
+           'row_id', 'colour', 'route_id')
 table = Table(column=columns, show='headings', padding=10,
               displaycolumns=('date', "route", "direction", "start", 'finish', 'bus_numb', 'screen'))
 table.bind('<<TreeviewSelect>>', table.item_selected)
@@ -763,7 +804,7 @@ button10 = ttk.Button(button_frame, image=chrome_icon,
                      compound='image', takefocus=False, command=lambda: thread_1.start(),
                                                                         )
 button11 = ttk.Button(button_frame, image=download_icon,
-                     compound='image', takefocus=False, command=lambda: Thread(target=table.autoclicker.upload_routes).start()
+                     compound='image', takefocus=False, command=lambda: Thread(target=download_routes).start()
                       )
 
 buttons = [button1, button2, button3]
@@ -790,15 +831,15 @@ root.grid_columnconfigure(1, weight=1)
 root.grid_rowconfigure(2, weight=1)
 root.grid_columnconfigure(2, weight=1)
 root.title('ScreenShooter')
+root.bind('<<Updated>>', lambda event: load_window.update_progressbar(event))
 
 
 def run():
     try:
-        rd.read(load_window)
+        rd.read()
         activate_buttons(button1)
         res_panel.flights_counter.set(rd.total)
         res_panel.remaining_counter.set(rd.total)
-        # keyboard.on_press_key('space', screen_by_space)
     except PermissionError:
         if rd.wb:
             while True:
@@ -811,12 +852,6 @@ def run():
                     continue
         else:
             show_error("Открыт файл эксель с неучтенными рейсами.Закройте файл и перезапустите приложение!")
-
-
-def new_window():
-    global load_window
-    load_window = LoadWindow(root)
-    load_window.set()
 
 
 def finish():
