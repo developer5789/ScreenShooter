@@ -15,8 +15,8 @@ import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import ElementNotInteractableException
 
-
 END = False
+editing_state = False
 X, Y, WIDTH, HEIGHT = None, None, None, None
 with open('cords.json', 'r') as f:
     cords_dict = json.load(f)
@@ -35,7 +35,7 @@ class EditWindow(tk.Toplevel):
         self.title('Редактировать')
         self.resizable(False, False)
         self.grab_set()
-        self.geometry("+{}+{}".format(root.winfo_rootx() + 50, root.winfo_rooty() + 50))
+        self.geometry("+{}+{}".format(app.winfo_rootx() + 50, app.winfo_rooty() + 50))
         self.date_frame = ttk.Frame(self)
         self.date_label = ttk.Label(self.date_frame, text="Дата:")
         self.date_entry = tk.Entry(self.date_frame, justify='left', width=35)
@@ -64,12 +64,12 @@ class EditWindow(tk.Toplevel):
         self.pack_items()
         self.fill_out_fields()
         editing_state = True
-        res_panel.state = 0
+        app.res_panel.state = 0
         self.protocol('WM_DELETE_WINDOW', self.finish_editing)
 
     def finish_editing(self):
         global editing_state
-        res_panel.state = 1
+        app.res_panel.state = 1
         editing_state = False
         self.destroy()
 
@@ -81,7 +81,7 @@ class EditWindow(tk.Toplevel):
         self.end_frame.grid(row=4, column=0, padx=20)
         self.bus_numb_frame.grid(row=5, column=0, padx=20)
         self.screen_frame.grid(row=6, column=0, padx=20)
-        self.btn_frame.grid(row=7, column=0, pady=20, sticky='nswe',)
+        self.btn_frame.grid(row=7, column=0, pady=20, sticky='nswe', )
 
         self.date_label.pack(anchor='w')
         self.date_entry.pack()
@@ -141,9 +141,9 @@ class EditWindow(tk.Toplevel):
     @staticmethod
     def change_counter(old_values, edited_values):
         if not old_values[:7][-1] and str(edited_values[-1]).strip():
-            res_panel.add_flight()
+            app.res_panel.add_flight()
         if old_values[:7][-1] and not str(edited_values[-1]).strip():
-            res_panel.subtract_flight()
+            app.res_panel.subtract_flight()
 
 
 class Table(ttk.Treeview):
@@ -192,7 +192,7 @@ class Table(ttk.Treeview):
                 self.autoclicker.pause()
                 print('Ошибка, элемент не кликается!')
 
-    def cancel(self): # надо посмотреть
+    def cancel(self):  # надо посмотреть
         item_id = str(self.current_item)
         values = self.item(str(self.current_item))['values']
         screen_path, screen = values[7], values[6]
@@ -207,7 +207,7 @@ class Table(ttk.Treeview):
                 self.check()
                 self.yview_scroll(1, 'units')
             if screen:
-                res_panel.subtract_flight()
+                app.res_panel.subtract_flight()
             del self.edited_items[item_id]
 
     def item_selected(self, event):
@@ -279,7 +279,6 @@ class Table(ttk.Treeview):
         #     self.item(str(self.current_item + offset), tags=('white_colored',))
         #     self.set(str(self.current_item + offset), 11, 'white_colored')
 
-
     def color(self, offset):
         colour = self.item(str(self.current_item + offset))['values'][11]
         self.item(str(self.current_item), tags=('gray_colored',))
@@ -327,7 +326,7 @@ class Table(ttk.Treeview):
         screen = pg.screenshot(region=(X, Y, WIDTH, HEIGHT))
         screen.save(screen_path)
         if not exc:
-            res_panel.add_flight()
+            app.res_panel.add_flight()
         return screen_path
 
     def get_order(self, formated_numb, date):
@@ -412,7 +411,7 @@ class LoadWindow(tk.Toplevel):
 class DownloadWindow(tk.Toplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.root = root
+        self.root = app
         self.geometry("700x250")
         self.title('Загрузка рейсов')
         self.resizable(False, False)
@@ -595,17 +594,17 @@ class Reader:
 
     def read(self):
         self.wb = openpyxl.load_workbook(self.file_path)
-        self.report_type = load_window.combobox_value.get()
-        load_window.progress_text_var.set(f'Загрузка файла...')
+        self.report_type = app.load_window.combobox_value.get()
+        app.load_window.progress_text_var.set(f'Загрузка файла...')
         sheet = self.wb.active
         counter = 0
-        step = sheet.max_row//10
+        step = sheet.max_row // 10
         step_counter = step
         for row in sheet.rows:
             counter += 1
             step_counter -= 1
             if step_counter == 0:
-                root.event_generate('<<Updated>>', when='tail')
+                app.event_generate('<<Updated>>', when='tail')
                 time.sleep(0.5)
                 step_counter = 0
             if type(row[2].value) == datetime.datetime and row[18].value is None:
@@ -626,9 +625,9 @@ class Reader:
                     }
                 )
 
-        load_window.progress_text_var.set(f'Файл {self.file_path} прочитан')
-        load_window.progress_var.set(100)
-        load_window.ok_btn['state'] = 'normal'
+        app.load_window.progress_text_var.set(f'Файл {self.file_path} прочитан')
+        app.load_window.progress_var.set(100)
+        app.load_window.ok_btn['state'] = 'normal'
         activate_buttons()
 
     @staticmethod
@@ -723,9 +722,8 @@ def get_datetime_obj(date_st, time_st):
 
 
 def new_window():
-    global load_window
-    load_window = LoadWindow(root)
-    load_window.set()
+    app.load_window = LoadWindow(app)
+    app.load_window.set()
 
 
 def download_routes():
@@ -733,14 +731,76 @@ def download_routes():
     table.autoclicker.download_routes(dwn_window)
 
 
-load_window = None
-flight = None
-root = tk.Tk()
-res_panel = ResultPanel(root)
-res_panel.prepare_panel()
-res_panel.main_frame.grid(row=0, column=0, columnspan=6, sticky='nsew')
-res_panel.progressbar.grid(row=1, column=0, columnspan=6, sticky='ew', pady=10)
-button_frame = ttk.Frame(root)
+class App(tk.Tk):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title('ScreenShooter')
+        self.load_window = None
+        self.res_panel = ResultPanel(self)
+        self.btn_frame = ttk.Frame(self)
+        self.autoclicker_frame = ttk.Frame(self.btn_frame)
+        self.start_btn = ttk.Button(self.btn_frame, text="Работать", state='disabled',
+                                    command=self.res_panel.start, takefocus=False, style='mystyle.TButton'
+                                    )  # button1
+        self.break_btn = ttk.Button(self.btn_frame, text="Перерыв", state='disabled', command=self.res_panel.pause,
+                                    takefocus=False, style='mystyle.TButton'
+                                    )  # button2
+        self.screen_btn = ttk.Button(self.btn_frame, text="Скрин", command=lambda: self.take_action(action='Есть'),
+                                     image=screen_icon, compound='right', state='disabled', takefocus=False,
+                                     style='mystyle.TButton'
+                                     )  # button3
+        self.play_btn = ttk.Button(self.autoclicker_frame, image=play_icon,
+                                   compound='image', takefocus=False,
+                                   command=lambda: Thread(target=table.run_autoclicker).start()
+                                   )  # button4
+        self.pause_btn = ttk.Button(self.autoclicker_frame, image=pause_icon,
+                                    compound='image', takefocus=False, command=table.autoclicker.pause,
+                                    )  # button8
+        self.stop_btn = ttk.Button(self.autoclicker_frame, image=stop_icon,
+                                   compound='image', takefocus=False, command=table.autoclicker.stop,
+                                   )  # button9
+        self.cancel_btn = ttk.Button(self.btn_frame, image=cancel_icon,
+                                     compound='image', takefocus=False, command=table.cancel,
+                                     )  # button5
+        self.edit_btn = ttk.Button(app.btn_frame, image=edit_icon,
+                                   compound='image', takefocus=False,
+                                   command=lambda: EditWindow(table.item(str(table.current_item))['values'])
+                                   )  # button6 поменять вызов command
+        self.show_btn = ttk.Button(app.btn_frame, image=show_icon, compound='image',
+                                   takefocus=False, command=table.show_screen, state='disabled'
+                                   )  # button7
+        self.chrome_btn = ttk.Button(self.btn_frame, image=chrome_icon,
+                                     compound='image', takefocus=False, command=lambda: thread_1.start(),
+                                     )  # button10
+        self.download_btn = ttk.Button(app.btn_frame, image=download_icon, compound='image',
+                                       takefocus=False, command=lambda: Thread(target=download_routes).start()
+                                       ) # button11
+
+    def pack(self):
+        self.res_panel.prepare_panel()
+        self.res_panel.main_frame.grid(row=0, column=0, columnspan=6, sticky='nsew')
+        self.res_panel.progressbar.grid(row=1, column=0, columnspan=6, sticky='ew', pady=10)
+        self.autoclicker_frame.grid(row=3, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
+        self.btn_frame.grid(row=2, column=1, sticky='nsew', pady=130)
+        self.start_btn.grid(row=1, column=0, sticky='nsew', pady=10, padx=10)
+        self.break_btn.grid(row=1, column=1, sticky='nsew', pady=10, padx=10)
+        self.screen_btn.grid(row=2, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
+        self.play_btn.grid(row=0, column=0, padx=30, pady=10)
+        self.cancel_btn.grid(row=2, column=4, pady=10, padx=20)
+        self.edit_btn.grid(row=5, column=4, pady=10, padx=30, sticky='nsew')
+        self.show_btn.grid(row=1, column=4, pady=10, padx=20)
+        self.pause_btn.grid(row=0, column=1, padx=30, pady=10)
+        self.stop_btn.grid(row=0, column=2, padx=30, pady=10)
+        self.chrome_btn.grid(row=3, column=4, pady=10, padx=20)
+        self.download_btn.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_columnconfigure(2, weight=1)
+
+
 icon_route = tk.PhotoImage(file=r'icons/icons8-автобусный-маршрут-20.png')
 icon_direction = tk.PhotoImage(file=r'icons/icons8-направление-22.png')
 icon_plan = tk.PhotoImage(file=r'icons/icons8-расписание-22.png')
@@ -762,6 +822,11 @@ stop_icon = tk.PhotoImage(file=r'icons/icons8-стоп-50.png')
 edit_icon = tk.PhotoImage(file=r'icons/icons8-редактировать-50.png')
 chrome_icon = tk.PhotoImage(file=r'icons/icons8-google-chrome-50.png')
 download_icon = tk.PhotoImage(file=r'icons/icons8-скачать-50.png')
+
+app = App()
+app.pack()
+
+
 table_style = ttk.Style()
 table_style.configure('Treeview', font=('Arial', 13), rowheight=60, separator=100)
 heading_style = ttk.Style()
@@ -780,69 +845,25 @@ columns = ("date", 'route', "direction", "start", 'finish',
 table = Table(column=columns, show='headings', padding=10,
               displaycolumns=('date', "route", "direction", "start", 'finish', 'bus_numb', 'screen'))
 table.bind('<<TreeviewSelect>>', table.item_selected)
-autoclicker_frame = ttk.Frame(button_frame)
-button1 = ttk.Button(button_frame, text="Работать", state='disabled', command=res_panel.start, takefocus=False,
-                     style='mystyle.TButton')
-button2 = ttk.Button(button_frame, text="Перерыв", state='disabled', command=res_panel.pause, takefocus=False,
-                     style='mystyle.TButton')
-button3 = ttk.Button(button_frame, text="Скрин", command=lambda: table.take_action(action='Есть'),
-                     image=screen_icon, compound='right', state='disabled', takefocus=False, style='mystyle.TButton')
-button4 = ttk.Button(autoclicker_frame, image=play_icon,
-                     compound='image', takefocus=False, command=lambda: Thread(target=table.run_autoclicker).start(),
-                                                                        )
-button5 = ttk.Button(button_frame, image=cancel_icon,
-                     compound='image', takefocus=False, command=table.cancel,
-                                                                        )
-button6 = ttk.Button(button_frame, image=edit_icon,
-                     compound='image', takefocus=False, command=lambda: EditWindow(table.item(str(table.current_item))['values']))
-button7 = ttk.Button(button_frame, image=show_icon,
-                     compound='image', takefocus=False, command=table.show_screen, state='disabled')
-button8 = ttk.Button(autoclicker_frame, image=pause_icon,
-                     compound='image', takefocus=False, command=table.autoclicker.pause,
-                                                                        )
-button9 = ttk.Button(autoclicker_frame, image=stop_icon,
-                     compound='image', takefocus=False, command=table.autoclicker.stop,
-                                                                        )
-button10 = ttk.Button(button_frame, image=chrome_icon,
-                     compound='image', takefocus=False, command=lambda: thread_1.start(),
-                                                                        )
-button11 = ttk.Button(button_frame, image=download_icon,
-                     compound='image', takefocus=False, command=lambda: Thread(target=download_routes).start()
-                      )
 
-buttons = [button1, button2, button3]
-button1.grid(row=1, column=0, sticky='nsew', pady=10, padx=10)
-button2.grid(row=1, column=1, sticky='nsew', pady=10, padx=10)
-button3.grid(row=2, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
-button4.grid(row=0, column=0, padx=30, pady=10)
-button8.grid(row=0, column=1, padx=30, pady=10)
-button9.grid(row=0, column=2, padx=30, pady=10)
-button6.grid(row=5, column=4, pady=10, padx=30, sticky='nsew')
-autoclicker_frame.grid(row=3, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
-button10.grid(row=3, column=4, pady=10, padx=20)
-button5.grid(row=2, column=4, pady=10, padx=20)
-button7.grid(row=1, column=4, pady=10, padx=20)
-button11.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
-button_frame.grid(row=2, column=1, sticky='nsew', pady=130)
+
+# buttons = [button1, button2, button3]
 table.grid(row=2, column=2, columnspan=4, sticky='NSEW')
 table.rowconfigure(0, pad=15)
 scroll = tk.Scrollbar(command=table.yview)
 scroll.grid(row=2, column=6, sticky='ns')
 table.config(yscrollcommand=scroll.set)
-root.grid_columnconfigure(0, weight=1)
-root.grid_columnconfigure(1, weight=1)
-root.grid_rowconfigure(2, weight=1)
-root.grid_columnconfigure(2, weight=1)
-root.title('ScreenShooter')
-root.bind('<<Updated>>', lambda event: load_window.update_progressbar(event))
+
+
+app.bind('<<Updated>>', lambda event: app.load_window.update_progressbar(event))
 
 
 def run():
     try:
         rd.read()
         activate_buttons(button1)
-        res_panel.flights_counter.set(rd.total)
-        res_panel.remaining_counter.set(rd.total)
+        app.res_panel.flights_counter.set(rd.total)
+        app.res_panel.remaining_counter.set(rd.total)
     except PermissionError:
         if rd.wb:
             while True:
@@ -874,16 +895,16 @@ def finish():
         else:
             show_error("Открыт файл эксель с неучтенными рейсами.Закройте файл и перезапустите приложение!")
     finally:
-        root.destroy()
+        app.destroy()
 
 
 try:
     os.mkdir('скрины') if 'скрины' not in os.listdir() else None
     rd = Reader()
     thread_1 = Thread(target=run_webdriver)
-    root.after(1000, new_window)
-    root.protocol('WM_DELETE_WINDOW', finish)
-    root.mainloop()
+    app.after(1000, new_window)
+    app.protocol('WM_DELETE_WINDOW', finish)
+    app.mainloop()
 except FileNotFoundError:
     show_error("Не найден файл эксель с неучтенными рейсами.Загрузите файл и перезапустите приложение!")
 except PermissionError:
