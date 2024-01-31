@@ -275,6 +275,10 @@ class Table(ttk.Treeview):
         elif self.item(str(self.current_item + offset))['values'][6] and exc:
             self.item(str(self.current_item + offset), tags=('blue_colored',))
             self.set(str(self.current_item + offset), 11, 'blue_colored')
+        # else:
+        #     self.item(str(self.current_item + offset), tags=('white_colored',))
+        #     self.set(str(self.current_item + offset), 11, 'white_colored')
+
 
     def color(self, offset):
         colour = self.item(str(self.current_item + offset))['values'][11]
@@ -781,7 +785,7 @@ button1 = ttk.Button(button_frame, text="Работать", state='disabled', co
                      style='mystyle.TButton')
 button2 = ttk.Button(button_frame, text="Перерыв", state='disabled', command=res_panel.pause, takefocus=False,
                      style='mystyle.TButton')
-button3 = ttk.Button(button_frame, text="Скрин", command=lambda: table.take_action('Есть'),
+button3 = ttk.Button(button_frame, text="Скрин", command=lambda: table.take_action(action='Есть'),
                      image=screen_icon, compound='right', state='disabled', takefocus=False, style='mystyle.TButton')
 button4 = ttk.Button(autoclicker_frame, image=play_icon,
                      compound='image', takefocus=False, command=lambda: Thread(target=table.run_autoclicker).start(),
@@ -871,6 +875,7 @@ def finish():
             show_error("Открыт файл эксель с неучтенными рейсами.Закройте файл и перезапустите приложение!")
     finally:
         root.destroy()
+
 
 try:
     os.mkdir('скрины') if 'скрины' not in os.listdir() else None

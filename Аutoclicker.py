@@ -26,7 +26,7 @@ class AutoClicker:
             link = self.routes[route][bus_numb][datetime_from]
             link.click()
         except ElementNotInteractableException:
-            ActionChains(self.browser).move_to_element(link)
+            ActionChains(self.browser).move_to_element(link).click()
 
     def run_webdriver(self):
         chrome_options = wb.ChromeOptions()
@@ -53,6 +53,7 @@ class AutoClicker:
             self.routes[route][bus_numb][datetime_from] = link_obj
 
         dwn_window.end()
+
     def pause(self):
         self.state = 0
 
