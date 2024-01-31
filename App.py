@@ -2,7 +2,6 @@ import time
 from threading import Thread
 import pyautogui as pg
 from collections import defaultdict
-from functools import partial
 import openpyxl
 import datetime
 from datetime import timedelta

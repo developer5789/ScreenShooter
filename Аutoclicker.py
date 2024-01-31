@@ -36,24 +36,23 @@ class AutoClicker:
     def download_routes(self, dwn_window):
         if self.routes:
             self.routes.clear()
-        # table_rows = self.browser.find_element(By.ID, 'myData').find_elements(By.TAG_NAME, 'tr')[1:]
-        table_rows = [i for i in range(100000)]
+        table_rows = self.browser.find_element(By.ID, 'myData').find_elements(By.TAG_NAME, 'tr')[1:]
         step_value = len(table_rows)//10
         counter = step_value
-        for i, row in enumerate(table_rows):
+        for row in table_rows:
             counter -= 1
             if not counter:
                 dwn_window.event_generate('<<Updated>>', when='tail')
                 time.sleep(0.3)
                 counter = step_value
-        dwn_window.end()
-            # values = [el.text for el in row.find_elements(By.TAG_NAME, 'td')]
-            # route = values[1]
-            # bus_numb = values[2].replace(' ', '')
-            # datetime_from = datetime.strptime(values[3], '%Y-%m-%d %H:%M')
-            # link_obj = row.find_element(By.TAG_NAME, 'a')
-            # self.routes[route][bus_numb][datetime_from] = link_obj
+            values = [el.text for el in row.find_elements(By.TAG_NAME, 'td')]
+            route = values[1]
+            bus_numb = values[2].replace(' ', '')
+            datetime_from = datetime.strptime(values[3], '%Y-%m-%d %H:%M')
+            link_obj = row.find_element(By.TAG_NAME, 'a')
+            self.routes[route][bus_numb][datetime_from] = link_obj
 
+        dwn_window.end()
     def pause(self):
         self.state = 0
 
