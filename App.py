@@ -7,7 +7,7 @@ import datetime
 from datetime import timedelta
 import os
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, PhotoImage as Img
 from tkinter import ttk
 from tkinter import filedialog as fd
 import keyboard
@@ -125,15 +125,15 @@ class EditWindow(tk.Toplevel):
         return res
 
     def edit(self):
-        item_id = str(table.current_item)
-        old_values = table.item(str(table.current_item))['values']
+        item_id = str(app.table.current_item)
+        old_values = app.table.item(str(app.table.current_item))['values']
         edited_values = self.get_data()
         if old_values[:7] != edited_values:
             for i, value in enumerate(edited_values):
-                table.set(str(table.current_item), i, value)
+                app.table.set(str(app.table.current_item), i, value)
             self.change_counter(old_values, edited_values)
-            if item_id not in table.edited_items:
-                table.edited_items[item_id] = {
+            if item_id not in app.table.edited_items:
+                app.table.edited_items[item_id] = {
                     'old_values': old_values,
                 }
         self.finish_editing()
@@ -147,17 +147,28 @@ class EditWindow(tk.Toplevel):
 
 
 class Table(ttk.Treeview):
+    columns = ("date", 'route', "direction", "start", 'finish', 'bus_numb',
+               'screen', 'screen_path', 'position', 'edited', 'row_id', 'colour', 'route_id')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.heading('date', text='Дата', anchor='w', image=icon_plan)
-        self.heading('route', text='Маршрут', anchor='w', image=icon_route)
-        self.heading('direction', text='Направление', anchor='w', image=icon_direction, )
-        self.heading("start", text="Начало", anchor='w', image=icon_start)
-        self.heading("finish", text="Конец", anchor='w', image=icon_finish)
-        self.heading("bus_numb", text="Гос.номер", anchor='w', image=icon_bus)
-        self.heading('screen', text="Скрин", anchor='w', image=icon_screen)
-        self.tag_configure('bold', font=('Arial', 13, 'bold'))
+        self.icons = {
+            'icon_direction': Img(file=r'icons/icons8-направление-22.png'),
+            'icon_time': Img(file=r'icons/icons8-расписание-22.png'),
+            'icon_start': Img(file=r'icons/icons8-начало-22.png'),
+            'icon_finish': Img(file=r'icons/icons8-end-function-button-on-computer-keybord-layout-22.png'),
+            'icon_bus': Img(file=r'icons/icons8-автобус-22.png'),
+            'icon_screen': Img(file=r'icons/icons8-скриншот-22.png'),
+            'route_icon': Img(file=r'icons/icons8-автобусный-маршрут-20.png')
+
+        }
+        self.heading('date', text='Дата', anchor='w', image=self.icons['icon_time'])
+        self.heading('route', text='Маршрут', anchor='w', image=self.icons['route_icon'])
+        self.heading('direction', text='Направление', anchor='w', image=self.icons['icon_direction'], )
+        self.heading("start", text="Начало", anchor='w', image=self.icons['icon_start'])
+        self.heading("finish", text="Конец", anchor='w', image=self.icons['icon_finish'])
+        self.heading("bus_numb", text="Гос.номер", anchor='w', image=self.icons['icon_bus'])
+        self.heading('screen', text="Скрин", anchor='w', image=self.icons['icon_screen'])
         self.column("date", width=140, stretch=True)
         self.column("route", width=130, stretch=True)
         self.column("direction", stretch=True, width=155)
@@ -165,10 +176,16 @@ class Table(ttk.Treeview):
         self.column("finish", stretch=True, width=90)
         self.column("bus_numb", stretch=True, width=115)
         self.column("screen", stretch=True, width=90)
+        self.tag_configure('bold', font=('Arial', 13, 'bold'))
         self.tag_configure('gray_colored', background='#D3D3D3')
         self.tag_configure('green_colored', background='#98FB98')
         self.tag_configure('white_colored', background='white')
         self.tag_configure('blue_colored', background='#00BFFF')
+        self.style = ttk.Style()
+        self.style.configure('Treeview', font=('Arial', 13), rowheight=60, separator=100)
+        self.heading_style = ttk.Style()
+        self.heading_style.configure('Treeview.Heading', font=('Arial', 12))
+        self.bind('<<TreeviewSelect>>', self.item_selected)
         self.table_size = 0
         self.current_item = 0
         self.edited_items = {}
@@ -259,9 +276,9 @@ class Table(ttk.Treeview):
     def check(self):
         screen_path = self.item(str(self.current_item))['values'][7]
         if screen_path:
-            button7['state'] = 'normal'
+            app.show_btn['state'] = 'normal'
         else:
-            button7['state'] = 'disabled'
+            app.show_btn['state'] = 'disabled'
 
     def show_screen(self):
         screen_path = self.item(str(self.current_item))['values'][7]
@@ -310,7 +327,7 @@ class Table(ttk.Treeview):
         if self.table_size:
             self.item(str(self.current_item), tags=('gray_colored',))
         else:
-            block_buttons(*buttons)
+            block_buttons(*app.buttons)
 
     def make_screenshot(self, values, exc=False, edited=False):
         bus_numb = values[5]
@@ -375,7 +392,7 @@ class LoadWindow(tk.Toplevel):
         self.set_upload_step()
         rd.file_path = self.report_name
         rd.final_report_path = self.final_report_name
-        Thread(target=run).start()
+        Thread(target=app.run_reader).start()
 
     def set(self):
         self.label_1.grid(row=0, column=0, columnspan=2, sticky='we')
@@ -401,7 +418,7 @@ class LoadWindow(tk.Toplevel):
 
     def end(self):
         self.destroy()
-        table.fill_out_table(rd)
+        app.table.fill_out_table(rd)
 
     def update_progressbar(self, event):
         cur_value = self.progress_var.get()
@@ -536,14 +553,14 @@ class ResultPanel:
             self.root.after(1000, self.run_time)
 
     def start(self):
-        block_buttons(button1)
-        activate_buttons(*buttons[1:])
+        block_buttons(app.start_btn)
+        activate_buttons(*app.buttons[1:])
         self.state = 1
         self.run_time()
 
     def pause(self):
-        block_buttons(*buttons[1:])
-        activate_buttons(button1)
+        block_buttons(*app.buttons[1:])
+        activate_buttons(app.start_btn)
         self.state = 0
 
     def calc_speed(self):
@@ -585,10 +602,8 @@ def find_report():
 class Reader:
     def __init__(self, file_path=None):
         self.file_path = file_path
-        self.final_report_path = None
         self.dict_problems = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         self.wb = None
-        self.date = None
         self.total = 0
         self.report_type = None
 
@@ -638,6 +653,7 @@ class Reader:
             return res
         return 0
 
+
     def convert_str_to_time(self, st: datetime.time):
         if st is None or st == '':
             return ''
@@ -648,11 +664,13 @@ class Reader:
         except Exception:
             return ''
 
+
     def convert_str_to_date(self, st):
         if type(st) == datetime.datetime:
             return st.strftime('%d.%m.%Y')
         elif st.strip() and '.' in st:
             return st.strip()
+
 
     def convert_route_into_numb(self, st):
         try:
@@ -673,10 +691,10 @@ class Writer:
         self.reader = reader
 
     def write(self):
-        for i in range(table.table_size):
+        for i in range(app.table.table_size):
             item_id = str(i)
-            if item_id in table.edited_items:
-                values = table.item(item_id)['values']
+            if item_id in app.table.edited_items:
+                values = app.table.item(item_id)['values']
                 row_numb = values[10]
                 start_time = self.convert_into_datetime(values[3], '%H.%M.%S')
                 self.reader.wb.active[f'B{row_numb}'] = values[1]
@@ -710,7 +728,7 @@ def block_buttons(*btns):
 
 
 def run_webdriver():
-    table.autoclicker.run_webdriver()
+    app.table.autoclicker.run_webdriver()
 
 
 def get_datetime_obj(date_st, time_st):
@@ -721,15 +739,6 @@ def get_datetime_obj(date_st, time_st):
     return datetime_obj
 
 
-def new_window():
-    app.load_window = LoadWindow(app)
-    app.load_window.set()
-
-
-def download_routes():
-    dwn_window = DownloadWindow()
-    table.autoclicker.download_routes(dwn_window)
-
 
 class App(tk.Tk):
 
@@ -738,46 +747,88 @@ class App(tk.Tk):
         self.title('ScreenShooter')
         self.load_window = None
         self.res_panel = ResultPanel(self)
+        self.table = Table(column=Table.columns, show='headings', padding=10,
+                           displaycolumns=('date', "route", "direction", "start", 'finish', 'bus_numb', 'screen'))
+        self.scroll = tk.Scrollbar(command=self.table.yview)
+        self.table.config(yscrollcommand=self.scroll.set)
         self.btn_frame = ttk.Frame(self)
         self.autoclicker_frame = ttk.Frame(self.btn_frame)
+        self.bind('<<Updated>>', lambda event: app.load_window.update_progressbar(event))
+        self.icons = {
+            'screen_icon': Img(file=r'icons/icons8-камера-50.png'),
+            'pass_step_icon': Img(file=r'icons/icons8-пропустить-шаг-64.png'),
+            'show_icon': Img(file=r'icons/icons8-глаз-50.png'),
+            'cancel_icon': Img(file=r'icons/icons8-отмена-50.png'),
+            'play_icon': Img(file=r'icons/icons8-треугольник-50.png'),
+            'pause_icon': Img(file=r'icons/icons8-пауза-50.png'),
+            'stop_icon': Img(file=r'icons/icons8-стоп-50.png'),
+            'edit_icon': Img(file=r'icons/icons8-редактировать-50.png'),
+            'chrome_icon': Img(file=r'icons/icons8-google-chrome-50.png'),
+            'download_icon': Img(file=r'icons/icons8-скачать-50.png')
+        }
+        self.start_btn = None
+        self.break_btn = None
+        self.screen_btn = None
+        self.play_btn = None
+        self.pause_btn = None
+        self.stop_btn = None
+        self.cancel_btn = None
+        self.edit_btn = None
+        self.show_btn = None
+        self.chrome_btn = None
+        self.download_btn = None
+        self.buttons = []
+        self.button_style = ttk.Style()
+        self.button_style.configure("mystyle.TButton", font='Arial 13', padding=10)
+        self.init_buttons()
+        self.pack()
+        self.after(1000, self.show_load_window)
+        self.protocol('WM_DELETE_WINDOW', self.finish)
+
+    def init_buttons(self):
         self.start_btn = ttk.Button(self.btn_frame, text="Работать", state='disabled',
                                     command=self.res_panel.start, takefocus=False, style='mystyle.TButton'
                                     )  # button1
         self.break_btn = ttk.Button(self.btn_frame, text="Перерыв", state='disabled', command=self.res_panel.pause,
                                     takefocus=False, style='mystyle.TButton'
                                     )  # button2
-        self.screen_btn = ttk.Button(self.btn_frame, text="Скрин", command=lambda: self.take_action(action='Есть'),
-                                     image=screen_icon, compound='right', state='disabled', takefocus=False,
-                                     style='mystyle.TButton'
+        self.screen_btn = ttk.Button(self.btn_frame, text="Скрин", image=self.icons['screen_icon'], compound='right',
+                                     command=lambda: self.table.take_action(action='Есть'), state='disabled',
+                                     takefocus=False, style='mystyle.TButton'
                                      )  # button3
-        self.play_btn = ttk.Button(self.autoclicker_frame, image=play_icon,
-                                   compound='image', takefocus=False,
-                                   command=lambda: Thread(target=table.run_autoclicker).start()
+        self.play_btn = ttk.Button(self.autoclicker_frame, image=self.icons['play_icon'],
+                                   compound='image', takefocus=False, state='disabled',
+                                   command=lambda: Thread(target=self.table.run_autoclicker).start()
                                    )  # button4
-        self.pause_btn = ttk.Button(self.autoclicker_frame, image=pause_icon,
-                                    compound='image', takefocus=False, command=table.autoclicker.pause,
+        self.pause_btn = ttk.Button(self.autoclicker_frame, image=self.icons['pause_icon'], state='disabled',
+                                    compound='image', takefocus=False, command=self.table.autoclicker.pause,
                                     )  # button8
-        self.stop_btn = ttk.Button(self.autoclicker_frame, image=stop_icon,
-                                   compound='image', takefocus=False, command=table.autoclicker.stop,
+        self.stop_btn = ttk.Button(self.autoclicker_frame, image=self.icons['stop_icon'], state='disabled',
+                                   compound='image', takefocus=False, command=self.table.autoclicker.stop,
                                    )  # button9
-        self.cancel_btn = ttk.Button(self.btn_frame, image=cancel_icon,
-                                     compound='image', takefocus=False, command=table.cancel,
+        self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
+                                     compound='image', takefocus=False, command=self.table.cancel,
                                      )  # button5
-        self.edit_btn = ttk.Button(app.btn_frame, image=edit_icon,
-                                   compound='image', takefocus=False,
-                                   command=lambda: EditWindow(table.item(str(table.current_item))['values'])
+        self.edit_btn = ttk.Button(self.btn_frame, image=self.icons['edit_icon'],
+                                   compound='image', takefocus=False, state='disabled',
+                                   command=lambda: EditWindow(self.table.item(str(self.table.current_item))['values'])
                                    )  # button6 поменять вызов command
-        self.show_btn = ttk.Button(app.btn_frame, image=show_icon, compound='image',
-                                   takefocus=False, command=table.show_screen, state='disabled'
+        self.show_btn = ttk.Button(self.btn_frame, image=self.icons['show_icon'], compound='image',
+                                   takefocus=False, command=self.table.show_screen, state='disabled'
                                    )  # button7
-        self.chrome_btn = ttk.Button(self.btn_frame, image=chrome_icon,
-                                     compound='image', takefocus=False, command=lambda: thread_1.start(),
+        self.chrome_btn = ttk.Button(self.btn_frame, image=self.icons['chrome_icon'], state='disabled',
+                                     compound='image', takefocus=False,
+                                     command=lambda: Thread(target=run_webdriver).start()
                                      )  # button10
-        self.download_btn = ttk.Button(app.btn_frame, image=download_icon, compound='image',
-                                       takefocus=False, command=lambda: Thread(target=download_routes).start()
-                                       ) # button11
+        self.download_btn = ttk.Button(self.btn_frame, image=self.icons['download_icon'], compound='image',
+                                       takefocus=False, command=lambda: Thread(target=download_routes).start(),
+                                       state='disabled'
+                                       )  # button11
+        self.buttons = [self.start_btn, self.break_btn, self.screen_btn]
 
     def pack(self):
+        self.table.grid(row=2, column=2, columnspan=4, sticky='NSEW')
+        self.scroll.grid(row=2, column=6, sticky='ns')
         self.res_panel.prepare_panel()
         self.res_panel.main_frame.grid(row=0, column=0, columnspan=6, sticky='nsew')
         self.res_panel.progressbar.grid(row=1, column=0, columnspan=6, sticky='ew', pady=10)
@@ -795,119 +846,55 @@ class App(tk.Tk):
         self.chrome_btn.grid(row=3, column=4, pady=10, padx=20)
         self.download_btn.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
 
+        self.table.rowconfigure(0, pad=15)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(2, weight=1)
 
+    def finish(self):
+        try:
+            wr = Writer(rd)
+            wr.write()
+        except PermissionError:
+            if rd.wb:
+                while True:
+                    try:
+                        open_warning()
+                        wr = Writer(rd)
+                        wr.write()
+                        break
+                    except PermissionError:
+                        continue
+        except AttributeError:
+            pass
+        finally:
+            self.destroy()
 
-icon_route = tk.PhotoImage(file=r'icons/icons8-автобусный-маршрут-20.png')
-icon_direction = tk.PhotoImage(file=r'icons/icons8-направление-22.png')
-icon_plan = tk.PhotoImage(file=r'icons/icons8-расписание-22.png')
-icon_start = tk.PhotoImage(file=r'icons/icons8-начало-22.png')
-icon_finish = tk.PhotoImage(file=r'icons/icons8-end-function-button-on-computer-keybord-layout-22.png')
-icon_bus = tk.PhotoImage(file=r'icons/icons8-автобус-22.png')
-icon_problem = tk.PhotoImage(file=r'icons/icons8-внимание-22.png')
-icon_screen = tk.PhotoImage(file=r'icons/icons8-скриншот-22.png')
-video_icon = tk.PhotoImage(file=r'icons/icons8-видеозвонок-64.png')
-screen_icon = tk.PhotoImage(file=r'icons/icons8-камера-50.png')
-pass_step_icon = tk.PhotoImage(file=r'icons/icons8-пропустить-шаг-64.png')
-up_icon = tk.PhotoImage(file=r'icons/icons8-стрелка-вверх-50-2.png')
-down_icon = tk.PhotoImage(file=r'icons/icons8-стрелка-вниз-50-2.png')
-show_icon = tk.PhotoImage(file=r'icons/icons8-глаз-50.png')
-cancel_icon = tk.PhotoImage(file=r'icons/icons8-отмена-50.png')
-play_icon = tk.PhotoImage(file=r'icons/icons8-треугольник-50.png')
-pause_icon = tk.PhotoImage(file=r'icons/icons8-пауза-50.png')
-stop_icon = tk.PhotoImage(file=r'icons/icons8-стоп-50.png')
-edit_icon = tk.PhotoImage(file=r'icons/icons8-редактировать-50.png')
-chrome_icon = tk.PhotoImage(file=r'icons/icons8-google-chrome-50.png')
-download_icon = tk.PhotoImage(file=r'icons/icons8-скачать-50.png')
+    def run_reader(self):
+        try:
+            rd.read()
+            activate_buttons(self.start_btn)
+            self.res_panel.flights_counter.set(rd.total)
+            self.res_panel.remaining_counter.set(rd.total)
+        except PermissionError:
+            show_error("Открыт файл эксель с неучтенными рейсами. Закройте файл и перезапустите приложение!")
+        except Exception:
+            show_error("Возникла ошибка! Перезапустите приложение!")
 
-app = App()
-app.pack()
+    def show_load_window(self):
+        self.load_window = LoadWindow(self)
+        self.load_window.set()
 
-
-table_style = ttk.Style()
-table_style.configure('Treeview', font=('Arial', 13), rowheight=60, separator=100)
-heading_style = ttk.Style()
-heading_style.configure('Treeview.Heading', font=('Arial', 12))
-
-button_style = ttk.Style()
-button_style.configure("mystyle.TButton",
-                       font='Arial 13',
-                       padding=10,
-
-                       )
-
-columns = ("date", 'route', "direction", "start", 'finish',
-           'bus_numb', 'screen', 'screen_path', 'position', 'edited',
-           'row_id', 'colour', 'route_id')
-table = Table(column=columns, show='headings', padding=10,
-              displaycolumns=('date', "route", "direction", "start", 'finish', 'bus_numb', 'screen'))
-table.bind('<<TreeviewSelect>>', table.item_selected)
-
-
-# buttons = [button1, button2, button3]
-table.grid(row=2, column=2, columnspan=4, sticky='NSEW')
-table.rowconfigure(0, pad=15)
-scroll = tk.Scrollbar(command=table.yview)
-scroll.grid(row=2, column=6, sticky='ns')
-table.config(yscrollcommand=scroll.set)
-
-
-app.bind('<<Updated>>', lambda event: app.load_window.update_progressbar(event))
-
-
-def run():
-    try:
-        rd.read()
-        activate_buttons(button1)
-        app.res_panel.flights_counter.set(rd.total)
-        app.res_panel.remaining_counter.set(rd.total)
-    except PermissionError:
-        if rd.wb:
-            while True:
-                try:
-                    open_warning()
-                    wr = Writer(rd)
-                    wr.write()
-                    break
-                except PermissionError:
-                    continue
-        else:
-            show_error("Открыт файл эксель с неучтенными рейсами.Закройте файл и перезапустите приложение!")
-
-
-def finish():
-    try:
-        wr = Writer(rd)
-        wr.write()
-    except PermissionError:
-        if rd.wb:
-            while True:
-                try:
-                    open_warning()
-                    wr = Writer(rd)
-                    wr.write()
-                    break
-                except PermissionError:
-                    continue
-        else:
-            show_error("Открыт файл эксель с неучтенными рейсами.Закройте файл и перезапустите приложение!")
-    finally:
-        app.destroy()
-
+    def download_routes(self):
+        dwn_window = DownloadWindow()
+        self.table.autoclicker.download_routes(dwn_window)
 
 try:
     os.mkdir('скрины') if 'скрины' not in os.listdir() else None
+    app = App()
     rd = Reader()
-    thread_1 = Thread(target=run_webdriver)
-    app.after(1000, new_window)
-    app.protocol('WM_DELETE_WINDOW', finish)
     app.mainloop()
-except FileNotFoundError:
-    show_error("Не найден файл эксель с неучтенными рейсами.Загрузите файл и перезапустите приложение!")
 except PermissionError:
     pass
-except AttributeError:
-    pass
+
