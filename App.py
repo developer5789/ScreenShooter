@@ -15,15 +15,105 @@ import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import ElementNotInteractableException
 
-END = False
+
+config = {}
+x, y, width, height = None, None, None, None
+timeout = None
+profile_path = ''
 editing_state = False
-X, Y, WIDTH, HEIGHT = None, None, None, None
-with open('cords.json', 'r') as f:
-    cords_dict = json.load(f)
-    X, Y = cords_dict['left_top']
-    WIDTH = cords_dict['width']
-    HEIGHT = cords_dict['height']
-editing_state = False
+
+
+class ConfigWindow(tk.Toplevel):
+    def __init__(self, *args, **kwargs):
+        global editing_state
+        super().__init__(*args, **kwargs)
+        self.geometry("500x250")
+        self.title('Настройки')
+        self.resizable(False, False)
+        self.grab_set()
+        self.geometry("+{}+{}".format(app.winfo_rootx() + 50, app.winfo_rooty() + 50))
+        self.path_frame = ttk.Frame(self)
+        self.path_label = ttk.Label(self.path_frame, text="Путь до папки профиля Chrome:")
+        self.path_entry = tk.Entry(self.path_frame, justify='left', width=60)
+        self.cords_frame = ttk.Frame(self, padding=3)
+        self.cords_label = tk.Label(self.cords_frame, text="Область скриншота:")
+        self.cords_entry = tk.Entry(self.cords_frame, width=35)
+        self.timeout_frame = ttk.Frame(self, padding=3)
+        self.timeout_label = tk.Label(self.timeout_frame, text="Timeout (сек): ")
+        self.timeout_var = tk.IntVar()
+        self.timeout_spinbox = tk.Spinbox(self.timeout_frame, state='readonly',
+                                          to=10.0,  textvariable=self.timeout_var)
+        self.btn_frame = ttk.Frame(self, padding=2)
+        self.btn_set = ttk.Button(self.btn_frame, text='Применить', command=self.apply)
+        self.pack_items()
+        # editing_state = True
+        # app.res_panel.state = 0
+        self.protocol('WM_DELETE_WINDOW', self.finish_editing)
+        self.values = []
+        self.fill_out_fields()
+
+    def finish_editing(self):
+        global editing_state
+        app.res_panel.state = 1
+        editing_state = False
+        self.destroy()
+
+    def pack_items(self):
+        self.path_frame.grid(row=0, column=0, padx=20)
+        self.cords_frame.grid(row=1, column=0, padx=20, sticky='nswe')
+        self.btn_frame.grid(row=3, column=0, pady=5, sticky='nswe', )
+        self.timeout_frame.grid(row=2, column=0, padx=20, sticky='nswe')
+
+        self.path_label.pack(anchor='w', pady=3)
+        self.path_entry.pack()
+        self.cords_label.pack(anchor='w', pady=3)
+        self.cords_entry.pack(anchor='w')
+        self.timeout_label.pack(anchor='w')
+        self.timeout_spinbox.pack(anchor='w')
+        self.btn_set.pack(side=tk.RIGHT, padx=15)
+
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
+        self.rowconfigure(3, weight=1)
+        self.rowconfigure(4, weight=1)
+        self.rowconfigure(5, weight=1)
+        self.rowconfigure(6, weight=1)
+        self.rowconfigure(7, weight=1)
+        self.columnconfigure(0, weight=1)
+
+    def fill_out_fields(self):
+        profile_path = config['profile_path']
+        screen_cords = str(config['screen_cords']).strip('[]')
+        timeout_val = config['timeout']
+        self.values.extend((profile_path, screen_cords, timeout_val))
+        self.path_entry.insert('end', profile_path)
+        self.cords_entry.insert('end', screen_cords)
+        self.timeout_var.set(timeout_val)
+
+    def apply(self):
+        new_values = [self.path_entry.get(),
+                    [int(val.strip()) for val in self.cords_entry.get().split(',')],
+                    self.timeout_var.get()
+        ]
+        if self.values != new_values:
+            self.set_settings(new_values)
+        self.destroy()
+
+    def set_settings(self, new_values):
+        global x, y, width, height, timeout, profile_path
+        for i, key in enumerate(config):
+            config[key] = new_values[i]
+        timeout = config["timeout"]
+        x, y, width, height = config["screen_cords"]
+        profile_path = config["profile_path"]
+        self.save_settings()
+
+
+    @staticmethod
+    def save_settings():
+        with open('config.json', 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=4)
 
 
 class EditWindow(tk.Toplevel):
@@ -328,6 +418,7 @@ class Table(ttk.Treeview):
             self.item(str(self.current_item), tags=('gray_colored',))
         else:
             block_buttons(*app.buttons)
+        rd.dict_problems.clear()
 
     def make_screenshot(self, values, exc=False, edited=False):
         bus_numb = values[5]
@@ -340,7 +431,7 @@ class Table(ttk.Treeview):
             screen_path = rf'скрины\{date}\{screen_name}.jpg'
         else:
             screen_path = self.item(str(self.current_item))['values'][7]
-        screen = pg.screenshot(region=(X, Y, WIDTH, HEIGHT))
+        screen = pg.screenshot(region=(x, y, width, height))
         screen.save(screen_path)
         if not exc:
             app.res_panel.add_flight()
@@ -739,7 +830,6 @@ def get_datetime_obj(date_st, time_st):
     return datetime_obj
 
 
-
 class App(tk.Tk):
 
     def __init__(self, *args, **kwargs):
@@ -764,7 +854,8 @@ class App(tk.Tk):
             'stop_icon': Img(file=r'icons/icons8-стоп-50.png'),
             'edit_icon': Img(file=r'icons/icons8-редактировать-50.png'),
             'chrome_icon': Img(file=r'icons/icons8-google-chrome-50.png'),
-            'download_icon': Img(file=r'icons/icons8-скачать-50.png')
+            'download_icon': Img(file=r'icons/icons8-скачать-50.png'),
+            'settings_icon': Img(file=r'icons/icons8-настройка-50.png')
         }
         self.start_btn = None
         self.break_btn = None
@@ -777,6 +868,7 @@ class App(tk.Tk):
         self.show_btn = None
         self.chrome_btn = None
         self.download_btn = None
+        self.settings_btn = None
         self.buttons = []
         self.button_style = ttk.Style()
         self.button_style.configure("mystyle.TButton", font='Arial 13', padding=10)
@@ -784,6 +876,7 @@ class App(tk.Tk):
         self.pack()
         self.after(1000, self.show_load_window)
         self.protocol('WM_DELETE_WINDOW', self.finish)
+        self.get_config()
 
     def init_buttons(self):
         self.start_btn = ttk.Button(self.btn_frame, text="Работать", state='disabled',
@@ -821,9 +914,13 @@ class App(tk.Tk):
                                      command=lambda: Thread(target=run_webdriver).start()
                                      )  # button10
         self.download_btn = ttk.Button(self.btn_frame, image=self.icons['download_icon'], compound='image',
-                                       takefocus=False, command=lambda: Thread(target=download_routes).start(),
+                                       takefocus=False, command=lambda: Thread(target=self.download_routes).start(),
                                        state='disabled'
                                        )  # button11
+        self.settings_btn = ttk.Button(self.btn_frame, image=self.icons['settings_icon'], compound='image',
+                                       command=lambda: ConfigWindow(), takefocus=False
+
+                                       )
         self.buttons = [self.start_btn, self.break_btn, self.screen_btn]
 
     def pack(self):
@@ -845,6 +942,7 @@ class App(tk.Tk):
         self.stop_btn.grid(row=0, column=2, padx=30, pady=10)
         self.chrome_btn.grid(row=3, column=4, pady=10, padx=20)
         self.download_btn.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
+        self.settings_btn.grid(row=7, column=4, pady=10, padx=30, sticky='nsew')
 
         self.table.rowconfigure(0, pad=15)
         self.grid_columnconfigure(0, weight=1)
@@ -889,6 +987,13 @@ class App(tk.Tk):
     def download_routes(self):
         dwn_window = DownloadWindow()
         self.table.autoclicker.download_routes(dwn_window)
+
+    @staticmethod
+    def get_config():
+        global config, x, y, width, height
+        with open('config.json', encoding='utf-8') as f:
+            config = json.load(f)
+        x, y, width, height = config['screen_cords']
 
 try:
     os.mkdir('скрины') if 'скрины' not in os.listdir() else None
