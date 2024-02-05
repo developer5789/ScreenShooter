@@ -13,7 +13,8 @@ from tkinter import filedialog as fd
 import keyboard
 import json
 from Аutoclicker import AutoClicker
-from selenium.common.exceptions import ElementNotInteractableException
+from selenium.common.exceptions import (ElementNotInteractableException,
+                                        ElementClickInterceptedException, NoSuchElementException)
 
 
 config = {}
@@ -27,7 +28,7 @@ class ConfigWindow(tk.Toplevel):
     def __init__(self, *args, **kwargs):
         global editing_state
         super().__init__(*args, **kwargs)
-        self.geometry("500x250")
+        self.geometry("400x200")
         self.title('Настройки')
         self.resizable(False, False)
         self.grab_set()
@@ -72,15 +73,15 @@ class ConfigWindow(tk.Toplevel):
         self.timeout_spinbox.pack(anchor='w')
         self.btn_set.pack(side=tk.RIGHT, padx=15)
 
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=1)
-        self.rowconfigure(3, weight=1)
-        self.rowconfigure(4, weight=1)
-        self.rowconfigure(5, weight=1)
-        self.rowconfigure(6, weight=1)
-        self.rowconfigure(7, weight=1)
-        self.columnconfigure(0, weight=1)
+        # self.rowconfigure(0, weight=1)
+        # self.rowconfigure(1, weight=1)
+        # self.rowconfigure(2, weight=1)
+        # self.rowconfigure(3, weight=1)
+        # self.rowconfigure(4, weight=1)
+        # self.rowconfigure(5, weight=1)
+        # self.rowconfigure(6, weight=1)
+        # self.rowconfigure(7, weight=1)
+        # self.columnconfigure(0, weight=1)
 
     def fill_out_fields(self):
         profile_path = config['profile_path']
@@ -279,7 +280,7 @@ class Table(ttk.Treeview):
         self.table_size = 0
         self.current_item = 0
         self.edited_items = {}
-        self.autoclicker = AutoClicker()
+        self.autoclicker = AutoClicker(profile_path)
         self.current_bus_numb = None
 
     def run_autoclicker(self):
@@ -291,13 +292,16 @@ class Table(ttk.Treeview):
                 datetime_obj = get_datetime_obj(values[0], values[3])
                 reset = True if bus_numb == self.current_bus_numb else False
                 self.autoclicker(route, bus_numb, datetime_obj, reset)
-                time.sleep(2)
+                time.sleep(timeout)
                 self.take_action(values, 'Есть')
                 if not reset:
                     self.current_bus_numb = bus_numb
-            except ElementNotInteractableException:
+            except (ElementNotInteractableException, ElementClickInterceptedException):
                 self.autoclicker.pause()
-                print('Ошибка, элемент не кликается!')
+                show_error('Возникла ошибка при обращении к элементу!')
+            except (NoSuchElementException, AttributeError):
+                self.autoclicker.pause()
+                show_error('Элемент не найден!')
 
     def cancel(self):  # надо посмотреть
         item_id = str(self.current_item)
@@ -833,6 +837,7 @@ def get_datetime_obj(date_st, time_st):
 class App(tk.Tk):
 
     def __init__(self, *args, **kwargs):
+        self.get_config()
         super().__init__(*args, **kwargs)
         self.title('ScreenShooter')
         self.load_window = None
@@ -876,7 +881,6 @@ class App(tk.Tk):
         self.pack()
         self.after(1000, self.show_load_window)
         self.protocol('WM_DELETE_WINDOW', self.finish)
-        self.get_config()
 
     def init_buttons(self):
         self.start_btn = ttk.Button(self.btn_frame, text="Работать", state='disabled',
@@ -890,32 +894,31 @@ class App(tk.Tk):
                                      takefocus=False, style='mystyle.TButton'
                                      )  # button3
         self.play_btn = ttk.Button(self.autoclicker_frame, image=self.icons['play_icon'],
-                                   compound='image', takefocus=False, state='disabled',
+                                   compound='image', takefocus=False,
                                    command=lambda: Thread(target=self.table.run_autoclicker).start()
                                    )  # button4
-        self.pause_btn = ttk.Button(self.autoclicker_frame, image=self.icons['pause_icon'], state='disabled',
+        self.pause_btn = ttk.Button(self.autoclicker_frame, image=self.icons['pause_icon'],
                                     compound='image', takefocus=False, command=self.table.autoclicker.pause,
                                     )  # button8
-        self.stop_btn = ttk.Button(self.autoclicker_frame, image=self.icons['stop_icon'], state='disabled',
+        self.stop_btn = ttk.Button(self.autoclicker_frame, image=self.icons['stop_icon'],
                                    compound='image', takefocus=False, command=self.table.autoclicker.stop,
                                    )  # button9
-        self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
+        self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'],
                                      compound='image', takefocus=False, command=self.table.cancel,
                                      )  # button5
         self.edit_btn = ttk.Button(self.btn_frame, image=self.icons['edit_icon'],
-                                   compound='image', takefocus=False, state='disabled',
+                                   compound='image', takefocus=False,
                                    command=lambda: EditWindow(self.table.item(str(self.table.current_item))['values'])
                                    )  # button6 поменять вызов command
         self.show_btn = ttk.Button(self.btn_frame, image=self.icons['show_icon'], compound='image',
-                                   takefocus=False, command=self.table.show_screen, state='disabled'
+                                   takefocus=False, command=self.table.show_screen
                                    )  # button7
-        self.chrome_btn = ttk.Button(self.btn_frame, image=self.icons['chrome_icon'], state='disabled',
+        self.chrome_btn = ttk.Button(self.btn_frame, image=self.icons['chrome_icon'],
                                      compound='image', takefocus=False,
                                      command=lambda: Thread(target=run_webdriver).start()
                                      )  # button10
         self.download_btn = ttk.Button(self.btn_frame, image=self.icons['download_icon'], compound='image',
-                                       takefocus=False, command=lambda: Thread(target=self.download_routes).start(),
-                                       state='disabled'
+                                       takefocus=False, command=lambda: Thread(target=self.download_routes).start()
                                        )  # button11
         self.settings_btn = ttk.Button(self.btn_frame, image=self.icons['settings_icon'], compound='image',
                                        command=lambda: ConfigWindow(), takefocus=False
@@ -990,10 +993,13 @@ class App(tk.Tk):
 
     @staticmethod
     def get_config():
-        global config, x, y, width, height
+        global config, x, y, width, height, profile_path, timeout
         with open('config.json', encoding='utf-8') as f:
             config = json.load(f)
         x, y, width, height = config['screen_cords']
+        profile_path = config['profile_path']
+        timeout = config['timeout']
+
 
 try:
     os.mkdir('скрины') if 'скрины' not in os.listdir() else None
