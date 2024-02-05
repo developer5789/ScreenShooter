@@ -465,11 +465,11 @@ class LoadWindow(tk.Toplevel):
         self.frame_3 = ttk.Frame(self, padding=3)
         self.text_1 = tk.Text(self.frame_2, height=1, width=65, background='white', font=('Arial', 11))
         self.btn_1 = ttk.Button(self.frame_2, text='Найти', command=lambda: self.select_file())
-        self.label_1 = ttk.Label(self.frame_1, text='Тип файла:', justify='left')
-        self.label_2 = ttk.Label(self.frame_2, text='Файл с неучтёнными рейсами:', justify='left')
+        self.label_1 = ttk.Label(self.frame_1, text='Тип:', justify='left')
+        self.label_2 = ttk.Label(self.frame_2, text='Файл с неучтёнными рейсами:')
         self.combobox_value = tk.StringVar()
         self.combobox = ttk.Combobox(self.frame_1, textvariable=self.combobox_value,
-                                     values=('НС', 'Комиссия'), justify='left')
+                                     values=('НС', 'Комиссия'))
         self.progress_var = tk.IntVar(value=0)
         self.progress_text_var = tk.StringVar()
         self.progressbar = ttk.Progressbar(self.frame_3, orient="horizontal", length=650, variable=self.progress_var,
@@ -491,13 +491,14 @@ class LoadWindow(tk.Toplevel):
 
     def set(self):
         self.label_1.grid(row=0, column=0, columnspan=2, sticky='we')
-        self.combobox.grid(row=1, column=0)
+        self.combobox.grid(row=1, column=0, sticky='we')
         self.label_2.grid(row=2, column=0, columnspan=2, sticky='we')
         self.text_1.grid(row=3, column=0)
         self.btn_1.grid(row=3, column=1)
-        self.frame_1.pack(ipadx=280, pady=10)
+        self.frame_1.pack(ipadx=225, pady=10 )
         self.frame_2.pack()
         self.btn_upload.pack(side='right', padx=10)
+
 
     def del_first_step(self):
         self.frame_1.destroy()
@@ -970,6 +971,8 @@ class App(tk.Tk):
         except AttributeError:
             pass
         finally:
+            if self.table.autoclicker:
+                self.table.autoclicker.stop()
             self.destroy()
 
     def run_reader(self):

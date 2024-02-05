@@ -19,7 +19,9 @@ class AutoClicker:
         self.state = 1
 
     def __bool__(self):
-        return self.browser
+        if self.browser:
+            return True
+        return False
 
     def __call__(self, route, bus_numb, datetime_from, reset):
         try:
@@ -61,13 +63,17 @@ class AutoClicker:
                 link_obj = row.find_element(By.TAG_NAME, 'a')
                 self.routes[route][bus_numb][datetime_from] = link_obj
 
-            dwn_window.end()
-        except (NoSuchElementException, AttributeError):
+        except Exception:
             showerror('Ошибка', 'Упс!Возникла ошибка при загрузке рейсов.')
-            dwn_window.end()
+            self.routes.clear()
+        finally:
+            if dwn_window:
+                dwn_window.end()
 
     def pause(self):
         self.state = 0
 
     def stop(self):
-        self.browser.quit()
+        if self.browser:
+            self.browser.quit()
+            self.browser = None
