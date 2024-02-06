@@ -277,6 +277,7 @@ class Table(ttk.Treeview):
         self.heading_style = ttk.Style()
         self.heading_style.configure('Treeview.Heading', font=('Arial', 12))
         self.bind('<<TreeviewSelect>>', self.item_selected)
+        self.bind('<Double-Button-1>', self.click_item)
         self.table_size = 0
         self.current_item = 0
         self.edited_items = {}
@@ -285,7 +286,7 @@ class Table(ttk.Treeview):
 
     def run_autoclicker(self):
         self.autoclicker.state = 1
-        while self.current_item < self.table_size and self.autoclicker.state:
+        while self.current_item < self.table_size:
             try:
                 values = self.item(str(self.current_item))['values']
                 route, bus_numb = str(values[1]), values[5]
@@ -293,9 +294,12 @@ class Table(ttk.Treeview):
                 reset = True if bus_numb == self.current_bus_numb else False
                 self.autoclicker(route, bus_numb, datetime_obj, reset)
                 time.sleep(timeout)
-                self.take_action(values, 'Есть')
-                if not reset:
-                    self.current_bus_numb = bus_numb
+                if self.autoclicker.state:
+                    self.take_action(values, 'Есть')
+                    if not reset:
+                        self.current_bus_numb = bus_numb
+                else:
+                    break
             except (ElementNotInteractableException, ElementClickInterceptedException):
                 self.autoclicker.pause()
                 show_error('Возникла ошибка при обращении к элементу!')
@@ -320,6 +324,20 @@ class Table(ttk.Treeview):
             if screen:
                 app.res_panel.subtract_flight()
             del self.edited_items[item_id]
+
+    def click_item(self, event):
+        try:
+            values = self.item(str(self.current_item))['values']
+            route, bus_numb = str(values[1]), values[5]
+            datetime_obj = get_datetime_obj(values[0], values[3])
+            reset = True if bus_numb == self.current_bus_numb else False
+            self.autoclicker(route, bus_numb, datetime_obj, reset)
+            if not reset:
+                self.current_bus_numb = bus_numb
+        except (ElementNotInteractableException, ElementClickInterceptedException):
+            show_error('Возникла ошибка при обращении к элементу!')
+        except (NoSuchElementException, AttributeError):
+            show_error('Элемент не найден!')
 
     def item_selected(self, event):
         if len(self.selection()):
