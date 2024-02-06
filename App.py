@@ -16,12 +16,26 @@ from Аutoclicker import AutoClicker
 from selenium.common.exceptions import (ElementNotInteractableException,
                                         ElementClickInterceptedException, NoSuchElementException)
 
-
+months = {
+    1: 'Январь',
+    2: 'Февраль',
+    3: 'Март',
+    4: 'Апрель',
+    5: 'Май',
+    6: 'Июнь',
+    7: 'Июль',
+    8: 'Август',
+    9: 'Сентябрь',
+    10: 'Октябрь',
+    11: 'Ноябрь',
+    12: 'Декабрь'
+}
 config = {}
 x, y, width, height = None, None, None, None
 timeout = None
 profile_path = ''
 editing_state = False
+screen_paths = defaultdict(dict)
 
 
 class ConfigWindow(tk.Toplevel):
@@ -109,7 +123,6 @@ class ConfigWindow(tk.Toplevel):
         x, y, width, height = config["screen_cords"]
         profile_path = config["profile_path"]
         self.save_settings()
-
 
     @staticmethod
     def save_settings():
@@ -239,7 +252,7 @@ class EditWindow(tk.Toplevel):
 
 class Table(ttk.Treeview):
     columns = ("date", 'route', "direction", "start", 'finish', 'bus_numb',
-               'screen', 'screen_path', 'position', 'edited', 'row_id', 'colour', 'route_id')
+               'screen', 'screen_path', 'position', 'edited', 'row_id', 'colour', 'route_id', 'route_dir')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -286,7 +299,7 @@ class Table(ttk.Treeview):
 
     def run_autoclicker(self):
         self.autoclicker.state = 1
-        while self.current_item < self.table_size:
+        while self.current_item < self.table_size and self.autoclicker.state:
             try:
                 values = self.item(str(self.current_item))['values']
                 route, bus_numb = str(values[1]), values[5]
@@ -338,6 +351,8 @@ class Table(ttk.Treeview):
             show_error('Возникла ошибка при обращении к элементу!')
         except (NoSuchElementException, AttributeError):
             show_error('Элемент не найден!')
+        except Exception:
+            show_error('Возникла ошибка!')
 
     def item_selected(self, event):
         if len(self.selection()):
@@ -431,9 +446,10 @@ class Table(ttk.Treeview):
         for position, flight, date in rd.get_flight():
             counter += 1
             route = flight['route']
+            root_dir = self.get_root_dir(date, route)
             values = (date, route, flight['direction'], flight['start_time'],
                       flight['finish_time'], flight['bus_numb'], '', '', position, 0,
-                      flight['row_numb'], 'white_colored', flight['route_numb'])
+                      flight['row_numb'], 'white_colored', flight['route_numb'], root_dir)
             self.insert('', 'end', values=values, iid=str(counter))
         self.table_size = counter + 1
         if self.table_size:
@@ -443,29 +459,55 @@ class Table(ttk.Treeview):
         rd.dict_problems.clear()
 
     def make_screenshot(self, values, exc=False, edited=False):
-        bus_numb = values[5]
-        date = values[0]
-        if date not in os.listdir('скрины'):
-            os.mkdir(rf'скрины\{date}')
         if not edited:
-            screen_name = f'{bus_numb[:2]} {bus_numb[2:-2]} {bus_numb[-2:]}'
-            screen_name += ' - ' + self.get_order(screen_name, date)
-            screen_path = rf'скрины\{date}\{screen_name}.jpg'
+            screen_path = self.get_screen_path(values)
         else:
             screen_path = self.item(str(self.current_item))['values'][7]
+
         screen = pg.screenshot(region=(x, y, width, height))
         screen.save(screen_path)
         if not exc:
             app.res_panel.add_flight()
+
         return screen_path
 
-    def get_order(self, formated_numb, date):
-        path = rf'скрины\{date}'
-        order = 1
-        for scr_name in os.listdir(path):
-            if formated_numb in scr_name:
-                order += 1
-        return str(order)
+    def get_screen_path(self, values):
+        root_dir = values[13]
+        if not os.path.exists(root_dir):
+            os.makedirs(root_dir)
+
+        if rd.report_type == 'НС':
+            bus_numb = values[5]
+            indx = self.get_screen_indx(bus_numb, root_dir)
+            return root_dir + '\\' + f'{bus_numb} - {indx}.jpg'
+        else:
+            route_numb = values[12]
+            screen_path = root_dir + '\\' + f'{route_numb}.jpg'
+
+        return screen_path
+
+    @staticmethod
+    def get_screen_indx(bus_numb, root_dir):
+        if screen_paths[root_dir][bus_numb]:
+            empty_spaces: list = screen_paths[root_dir][bus_numb]['empty_positions']
+            if empty_spaces:
+                indx = empty_spaces.pop()
+            else:
+                screen_paths[root_dir][bus_numb]['max_value'] += 1
+                indx = screen_paths[root_dir][bus_numb]['max_value']
+        else:
+            screen_paths[root_dir][bus_numb] = {
+                                                'empty_positions': [],
+                                                'max_value': 1
+                                                }
+            indx = screen_paths[root_dir][bus_numb]['max_value']
+        return indx
+
+    @staticmethod
+    def get_root_dir(date, route):
+        month_numb = int(date.split('.')[1])
+        path = fr'скрины\{rd.report_type}\{months[month_numb]}_{route}'
+        return path
 
 
 class LoadWindow(tk.Toplevel):
@@ -516,7 +558,6 @@ class LoadWindow(tk.Toplevel):
         self.frame_1.pack(ipadx=225, pady=10 )
         self.frame_2.pack()
         self.btn_upload.pack(side='right', padx=10)
-
 
     def del_first_step(self):
         self.frame_1.destroy()
@@ -740,7 +781,7 @@ class Reader:
                 self.total += 1
                 date = self.convert_str_to_date(row[2].value)
                 route = row[1].value
-                bus_numb = row[11].value
+                bus_numb = self.get_bus_numb(row[11].value)
                 self.dict_problems[date][route][bus_numb].append(
                     {
                         'direction': row[3].value,
@@ -760,13 +801,21 @@ class Reader:
         activate_buttons()
 
     @staticmethod
+    def get_bus_numb(bus_numb: str):
+        if not bus_numb:
+            return ''
+        bus_numb = bus_numb.replace(' ', '')
+        bus_numb = f'{bus_numb[:2]} {bus_numb[2:-2]} {bus_numb[-2:]}'
+        return bus_numb
+
+
+    @staticmethod
     def get_seconds(st):
         if st:
             hours, minutes = map(int, st.split(':'))
             res = hours * 60 + minutes
             return res
         return 0
-
 
     def convert_str_to_time(self, st: datetime.time):
         if st is None or st == '':
@@ -778,13 +827,11 @@ class Reader:
         except Exception:
             return ''
 
-
     def convert_str_to_date(self, st):
         if type(st) == datetime.datetime:
             return st.strftime('%d.%m.%Y')
         elif st.strip() and '.' in st:
             return st.strip()
-
 
     def convert_route_into_numb(self, st):
         try:
@@ -851,6 +898,36 @@ def get_datetime_obj(date_st, time_st):
     if datetime_obj.hour < 2:
         datetime_obj += datetime.timedelta(hours=24)
     return datetime_obj
+
+
+def make_dirs():
+    if 'скрины' not in os.listdir():
+        os.mkdir('скрины')
+    if rd.report_type not in os.listdir('скрины'):
+        os.mkdir(fr'скрины\{rd.report_type}')
+
+
+def get_paths():
+    root_path = rf'скрины\{rd.report_type}'
+    for dir in os.listdir(root_path):
+        path = root_path + '\\' + dir
+        numb_dict = defaultdict(list)
+        for screen_name in os.listdir(path):
+            numb, indx = screen_name[:-4].split(' - ')
+            numb_dict[numb].append(int(indx))
+        for numb in numb_dict:
+            lst_indx = numb_dict[numb]
+            max_indx = max(lst_indx)
+            empty_pos = []
+            for i in range(1, max_indx + 1):
+                if i not in lst_indx:
+                    empty_pos.append(i)
+            numb_dict[numb] = {
+                                'empty_positions': empty_pos,
+                                'max_value': max_indx
+            }
+        path = root_path + '\\' + dir
+        screen_paths[path] = numb_dict
 
 
 class App(tk.Tk):
@@ -999,6 +1076,8 @@ class App(tk.Tk):
             activate_buttons(self.start_btn)
             self.res_panel.flights_counter.set(rd.total)
             self.res_panel.remaining_counter.set(rd.total)
+            make_dirs()
+            get_paths()
         except PermissionError:
             show_error("Открыт файл эксель с неучтенными рейсами. Закройте файл и перезапустите приложение!")
         except Exception:
@@ -1023,7 +1102,6 @@ class App(tk.Tk):
 
 
 try:
-    os.mkdir('скрины') if 'скрины' not in os.listdir() else None
     app = App()
     rd = Reader()
     app.mainloop()

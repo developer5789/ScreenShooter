@@ -58,7 +58,7 @@ class AutoClicker:
                     counter = step_value
                 values = [el.text for el in row.find_elements(By.TAG_NAME, 'td')]
                 route = values[1]
-                bus_numb = values[2].replace(' ', '')
+                bus_numb = values[2].strip()
                 datetime_from = datetime.strptime(values[3], '%Y-%m-%d %H:%M')
                 link_obj = row.find_element(By.TAG_NAME, 'a')
                 self.routes[route][bus_numb][datetime_from] = link_obj
