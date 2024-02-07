@@ -797,7 +797,7 @@ class Reader:
                 self.dict_problems[date][route][bus_numb].append(
                     {
                         'direction': row[3].value,
-                        'start_time': self.convert_str_to_time(row[4].value),
+                        'start_time': self.convert_str_to_time(row[7].value),
                         'finish_time': self.convert_str_to_time(row[8].value),
                         'screen': None,
                         'row_numb': counter,
