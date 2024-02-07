@@ -35,7 +35,7 @@ x, y, width, height = None, None, None, None
 timeout = None
 profile_path = ''
 editing_state = False
-screen_paths = defaultdict(dict)
+screen_paths = defaultdict(lambda: defaultdict(list))
 
 
 class ConfigWindow(tk.Toplevel):
@@ -323,10 +323,10 @@ class Table(ttk.Treeview):
     def cancel(self):  # надо посмотреть
         item_id = str(self.current_item)
         values = self.item(str(self.current_item))['values']
-        screen_path, screen = values[7], values[6]
+        screen_path, screen, root_dir = values[7], values[6], values[13]
         if item_id in self.edited_items:
             if screen_path:
-                os.remove(screen_path)
+                self.del_screen(screen_path, root_dir)
             for i, value in enumerate(self.edited_items[item_id]['old_values']):
                 self.set(item_id, i, value)
             if self.current_item + 1 < self.table_size:
@@ -337,6 +337,18 @@ class Table(ttk.Treeview):
             if screen:
                 app.res_panel.subtract_flight()
             del self.edited_items[item_id]
+
+    @staticmethod
+    def del_screen(screen_path, root_dir):
+        if rd.report_type == 'НС':
+            screen_name = screen_path.split('\\')[-1]
+            numb, indx = screen_name[:-4].split(' - ')
+            numb_dict = screen_paths[root_dir][numb]
+            if int(indx) < numb_dict['max_value']:
+                numb_dict['empty_positions'].append(indx)
+            else:
+                numb_dict['max_value'] -= 1
+        os.remove(screen_path)
 
     def click_item(self, event):
         try:
@@ -925,7 +937,7 @@ def get_paths():
             numb_dict[numb] = {
                                 'empty_positions': empty_pos,
                                 'max_value': max_indx
-            }
+                                }
         path = root_path + '\\' + dir
         screen_paths[path] = numb_dict
 
@@ -1077,7 +1089,8 @@ class App(tk.Tk):
             self.res_panel.flights_counter.set(rd.total)
             self.res_panel.remaining_counter.set(rd.total)
             make_dirs()
-            get_paths()
+            if rd.report_type == 'НС':
+                get_paths()
         except PermissionError:
             show_error("Открыт файл эксель с неучтенными рейсами. Закройте файл и перезапустите приложение!")
         except Exception:
