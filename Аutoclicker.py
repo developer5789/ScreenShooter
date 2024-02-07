@@ -17,6 +17,7 @@ class AutoClicker:
         self.routes = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
         self.browser = None
         self.state = 1
+        self.skip = False
 
     def __bool__(self):
         if self.browser:
