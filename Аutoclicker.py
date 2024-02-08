@@ -16,6 +16,7 @@ class AutoClicker:
         self.profile_path = profile_path
         self.routes = defaultdict(lambda: defaultdict(lambda: defaultdict(str)))
         self.browser = None
+        self.widgets = {}
         self.state = 1
         self.skip = False
 
@@ -27,9 +28,9 @@ class AutoClicker:
     def __call__(self, route, bus_numb, datetime_from, reset):
         try:
             if reset:
-                self.browser.find_element(By.ID, 'button-1155-btnIconEl').click()
+                self.widgets['search_field'].send_keys('q')
+                self.widgets['search_btn'].click()
                 time.sleep(0.5)
-                self.browser.find_element(By.ID, 'button-1036-btnEl').click()
             link = self.routes[route][bus_numb][datetime_from]
             link.click()
         except (ElementNotInteractableException, ElementClickInterceptedException):
@@ -49,7 +50,7 @@ class AutoClicker:
             if self.routes:
                 self.routes.clear()
             table_rows = self.browser.find_element(By.ID, 'myData').find_elements(By.TAG_NAME, 'tr')[1:]
-            step_value = len(table_rows)//10
+            step_value = len(table_rows) // 10
             counter = step_value
             for row in table_rows:
                 counter -= 1
@@ -78,3 +79,15 @@ class AutoClicker:
         if self.browser:
             self.browser.quit()
             self.browser = None
+            self.widgets.clear()
+
+    def update_widgets(self):
+        search_field = self.browser.find_element(By.ID, 'textfield-1123-inputEl')
+        search_btn = self.browser.find_element(By.ID, 'button-1154-btnIconEl')
+        self.widgets = {
+            'search_field': search_field,
+            'search_btn': search_btn,
+        }
+
+    def skip_route(self):
+        self.skip = True

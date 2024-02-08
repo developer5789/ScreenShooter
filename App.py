@@ -300,7 +300,8 @@ class Table(ttk.Treeview):
     def run_autoclicker(self):
         self.autoclicker.state = 1
         block_buttons(app.play_btn)
-        activate_buttons(app.pause_btn)
+        activate_buttons(app.pause_btn, app.skip_btn)
+        self.autoclicker.update_widgets()
         while self.current_item < self.table_size and self.autoclicker.state:
             try:
                 values = self.item(str(self.current_item))['values']
@@ -310,7 +311,11 @@ class Table(ttk.Treeview):
                 self.autoclicker(route, bus_numb, datetime_obj, reset)
                 time.sleep(timeout)
 
-                if self.autoclicker.state:
+                if self.autoclicker.skip:
+                    self.autoclicker.skip = False
+                    self.current_item += 1
+                    self.color(-1)
+                elif self.autoclicker.state:
                     self.take_action(values, '1')
                     if not reset:
                         self.current_bus_numb = bus_numb
@@ -325,6 +330,12 @@ class Table(ttk.Treeview):
                 self.autoclicker.pause()
                 activate_buttons(app.play_btn)
                 show_error('Элемент не найден!')
+            except Exception:
+                self.autoclicker.pause()
+                activate_buttons(app.play_btn)
+                show_error('Возникла ошибка!')
+
+        block_buttons(app.skip_btn)
 
     def cancel(self):  # надо посмотреть
         item_id = str(self.current_item)
@@ -358,17 +369,23 @@ class Table(ttk.Treeview):
 
     def click_item(self, event):
         try:
+            if not self.autoclicker.widgets:
+                self.autoclicker.update_widgets()
+
             values = self.item(str(self.current_item))['values']
             route, bus_numb = str(values[1]), values[5]
             datetime_obj = get_datetime_obj(values[0], values[3])
             reset = True if bus_numb == self.current_bus_numb else False
             self.autoclicker(route, bus_numb, datetime_obj, reset)
+
             if not reset:
                 self.current_bus_numb = bus_numb
         except (ElementNotInteractableException, ElementClickInterceptedException):
             show_error('Возникла ошибка при обращении к элементу!')
+
         except (NoSuchElementException, AttributeError):
             show_error('Элемент не найден!')
+
         except Exception:
             show_error('Возникла ошибка!')
 
@@ -975,7 +992,9 @@ class App(tk.Tk):
             'edit_icon': Img(file=r'icons/icons8-редактировать-50.png'),
             'chrome_icon': Img(file=r'icons/icons8-google-chrome-50.png'),
             'download_icon': Img(file=r'icons/icons8-скачать-50.png'),
-            'settings_icon': Img(file=r'icons/icons8-настройка-50.png')
+            'settings_icon': Img(file=r'icons/icons8-настройка-50.png'),
+            'skip_icon': Img(file=r'icons/icons8-пропустить-шаг-64.png')
+
         }
         self.start_btn = None
         self.break_btn = None
@@ -1008,6 +1027,10 @@ class App(tk.Tk):
                                      command=lambda: self.table.take_action(action='1'), state='disabled',
                                      takefocus=False, style='mystyle.TButton'
                                      )  # button3
+        self.skip_btn = ttk.Button(self.btn_frame, text="Пропустить", image=self.icons['skip_icon'], compound='right',
+                                     command=self.table.autoclicker.skip_route, state='disabled',
+                                     takefocus=False, style='mystyle.TButton'
+                                     )
         self.play_btn = ttk.Button(self.autoclicker_frame, image=self.icons['play_icon'],
                                    compound='image', takefocus=False, state='disabled',
                                    command=lambda: Thread(target=self.table.run_autoclicker).start()
@@ -1049,18 +1072,19 @@ class App(tk.Tk):
         self.res_panel.prepare_panel()
         self.res_panel.main_frame.grid(row=0, column=0, columnspan=6, sticky='nsew')
         self.res_panel.progressbar.grid(row=1, column=0, columnspan=6, sticky='ew', pady=10)
-        self.autoclicker_frame.grid(row=3, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
+        self.autoclicker_frame.grid(row=4, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
         self.btn_frame.grid(row=2, column=1, sticky='nsew', pady=130)
         self.start_btn.grid(row=1, column=0, sticky='nsew', pady=10, padx=10)
         self.break_btn.grid(row=1, column=1, sticky='nsew', pady=10, padx=10)
-        self.screen_btn.grid(row=2, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
+        self.skip_btn.grid(row=2, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
+        self.screen_btn.grid(row=3, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
         self.play_btn.grid(row=0, column=0, padx=30, pady=10)
-        self.cancel_btn.grid(row=2, column=4, pady=10, padx=20)
+        self.cancel_btn.grid(row=3, column=4, pady=10, padx=20)
         self.edit_btn.grid(row=5, column=4, pady=10, padx=30, sticky='nsew')
-        self.show_btn.grid(row=1, column=4, pady=10, padx=20)
+        self.show_btn.grid(row=2, column=4, pady=10, padx=20)
         self.pause_btn.grid(row=0, column=1, padx=30, pady=10)
         self.stop_btn.grid(row=0, column=2, padx=30, pady=10)
-        self.chrome_btn.grid(row=3, column=4, pady=10, padx=20)
+        self.chrome_btn.grid(row=4, column=4, pady=10, padx=20)
         self.download_btn.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
         self.settings_btn.grid(row=7, column=4, pady=10, padx=30, sticky='nsew')
 
@@ -1072,8 +1096,9 @@ class App(tk.Tk):
 
     def pause_autoclicker(self):
         self.table.autoclicker.pause()
-        block_buttons(self.pause_btn)
+        block_buttons(self.pause_btn, self.skip_btn)
         activate_buttons(self.play_btn)
+        self.table.autoclicker.widgets.clear()
 
     def finish(self):
         try:
