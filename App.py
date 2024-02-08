@@ -87,15 +87,6 @@ class ConfigWindow(tk.Toplevel):
         self.timeout_spinbox.pack(anchor='w')
         self.btn_set.pack(side=tk.RIGHT, padx=15)
 
-        # self.rowconfigure(0, weight=1)
-        # self.rowconfigure(1, weight=1)
-        # self.rowconfigure(2, weight=1)
-        # self.rowconfigure(3, weight=1)
-        # self.rowconfigure(4, weight=1)
-        # self.rowconfigure(5, weight=1)
-        # self.rowconfigure(6, weight=1)
-        # self.rowconfigure(7, weight=1)
-        # self.columnconfigure(0, weight=1)
 
     def fill_out_fields(self):
         profile_path = config['profile_path']
@@ -299,6 +290,7 @@ class Table(ttk.Treeview):
 
     def run_autoclicker(self):
         self.autoclicker.state = 1
+        self.autoclicker.skip = False
         block_buttons(app.play_btn)
         activate_buttons(app.pause_btn, app.skip_btn)
         self.autoclicker.update_widgets()
@@ -1039,7 +1031,7 @@ class App(tk.Tk):
                                     compound='image', takefocus=False, command=self.pause_autoclicker,
                                     )  # button8
         self.stop_btn = ttk.Button(self.autoclicker_frame, image=self.icons['stop_icon'], state='disabled',
-                                   compound='image', takefocus=False, command=self.table.autoclicker.stop,
+                                   compound='image', takefocus=False, command=self.close_autoclicker,
                                    )  # button9
         self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
                                      compound='image', takefocus=False, command=self.table.cancel,
@@ -1063,7 +1055,7 @@ class App(tk.Tk):
 
                                        )
         self.buttons.extend((self.start_btn, self.break_btn, self.screen_btn, self.cancel_btn,
-                             self.edit_btn, self.download_btn, self.play_btn, self.pause_btn,
+                             self.edit_btn, self.download_btn, self.play_btn,
                              self.stop_btn, self.chrome_btn))
 
     def pack(self):
@@ -1099,6 +1091,11 @@ class App(tk.Tk):
         block_buttons(self.pause_btn, self.skip_btn)
         activate_buttons(self.play_btn)
         self.table.autoclicker.widgets.clear()
+
+    def close_autoclicker(self):
+        self.table.autoclicker.stop()
+        self.play_btn['state'] = 'normal'
+        self.pause_btn['state'] = 'disabled'
 
     def finish(self):
         try:

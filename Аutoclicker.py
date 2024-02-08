@@ -8,8 +8,6 @@ from collections import defaultdict
 import time
 from tkinter.messagebox import showerror
 
-RNIS_URL = 'https://reg-rnis.mos.ru/login#maintab.telematic'
-
 
 class AutoClicker:
     def __init__(self, profile_path):
@@ -82,12 +80,15 @@ class AutoClicker:
             self.widgets.clear()
 
     def update_widgets(self):
-        search_field = self.browser.find_element(By.ID, 'textfield-1123-inputEl')
-        search_btn = self.browser.find_element(By.ID, 'button-1154-btnIconEl')
-        self.widgets = {
-            'search_field': search_field,
-            'search_btn': search_btn,
-        }
+        try:
+            search_field = self.browser.find_element(By.ID, 'textfield-1123-inputEl')
+            search_btn = self.browser.find_element(By.ID, 'button-1154-btnIconEl')
+            self.widgets = {
+                'search_field': search_field,
+                'search_btn': search_btn,
+            }
+        except AttributeError as err:
+            self.state = 0
 
     def skip_route(self):
         self.skip = True
