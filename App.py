@@ -10,11 +10,9 @@ import tkinter as tk
 from tkinter import messagebox, PhotoImage as Img
 from tkinter import ttk
 from tkinter import filedialog as fd
-import keyboard
 import json
 from Аutoclicker import AutoClicker
-from selenium.common.exceptions import (ElementNotInteractableException,
-                                        ElementClickInterceptedException, NoSuchElementException)
+from selenium.common.exceptions import NoSuchWindowException
 
 months = {
     1: 'Январь',
@@ -61,8 +59,6 @@ class ConfigWindow(tk.Toplevel):
         self.btn_frame = ttk.Frame(self, padding=2)
         self.btn_set = ttk.Button(self.btn_frame, text='Применить', command=self.apply)
         self.pack_items()
-        # editing_state = True
-        # app.res_panel.state = 0
         self.protocol('WM_DELETE_WINDOW', self.finish_editing)
         self.values = []
         self.fill_out_fields()
@@ -293,14 +289,15 @@ class Table(ttk.Treeview):
         self.autoclicker.skip = False
         block_buttons(app.play_btn)
         activate_buttons(app.pause_btn, app.skip_btn)
-        self.autoclicker.update_widgets()
+
         while self.current_item < self.table_size and self.autoclicker.state:
             try:
                 values = self.item(str(self.current_item))['values']
-                route, bus_numb = str(values[1]), values[5]
-                datetime_obj = get_datetime_obj(values[0], values[3])
+                bus_numb = values[5]
+                datetime_from = get_datetime_obj(values[0], values[3])
+                datetime_to = get_datetime_obj(values[0], values[4], start=False)
                 reset = True if bus_numb == self.current_bus_numb else False
-                self.autoclicker(route, bus_numb, datetime_obj, reset)
+                self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
                 time.sleep(timeout)
 
                 if self.autoclicker.skip:
@@ -314,18 +311,15 @@ class Table(ttk.Treeview):
                 else:
                     break
 
-            except (ElementNotInteractableException, ElementClickInterceptedException):
+            except NoSuchWindowException:
                 self.autoclicker.pause()
                 activate_buttons(app.play_btn)
-                show_error('Возникла ошибка при обращении к элементу!')
-            except (NoSuchElementException, AttributeError):
-                self.autoclicker.pause()
-                activate_buttons(app.play_btn)
-                show_error('Элемент не найден!')
+                show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
+
             except Exception:
                 self.autoclicker.pause()
                 activate_buttons(app.play_btn)
-                show_error('Возникла ошибка!')
+                show_error('Упс! Возникла ошибка при построении трека!')
 
         block_buttons(app.skip_btn)
 
@@ -353,33 +347,31 @@ class Table(ttk.Treeview):
             screen_name = screen_path.split('\\')[-1]
             numb, indx = screen_name[:-4].split(' - ')
             numb_dict = screen_paths[root_dir][numb]
+
             if int(indx) < numb_dict['max_value']:
                 numb_dict['empty_positions'].append(indx)
             else:
                 numb_dict['max_value'] -= 1
+
         os.remove(screen_path)
 
     def click_item(self, event):
         try:
-            if not self.autoclicker.widgets:
-                self.autoclicker.update_widgets()
-
             values = self.item(str(self.current_item))['values']
-            route, bus_numb = str(values[1]), values[5]
-            datetime_obj = get_datetime_obj(values[0], values[3])
+            bus_numb = values[5]
+            datetime_from = get_datetime_obj(values[0], values[3])
+            datetime_to = get_datetime_obj(values[0], values[4], start=False)
             reset = True if bus_numb == self.current_bus_numb else False
-            self.autoclicker(route, bus_numb, datetime_obj, reset)
+            self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
 
             if not reset:
                 self.current_bus_numb = bus_numb
-        except (ElementNotInteractableException, ElementClickInterceptedException):
-            show_error('Возникла ошибка при обращении к элементу!')
 
-        except (NoSuchElementException, AttributeError):
-            show_error('Элемент не найден!')
+        except NoSuchWindowException:
+            show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
 
         except Exception:
-            show_error('Возникла ошибка!')
+            show_error('Упс! Возникла ошибка при построении трека!')
 
     def item_selected(self, event):
         if len(self.selection()):
@@ -920,12 +912,17 @@ def run_webdriver():
         app.table.autoclicker.run_webdriver()
 
 
-def get_datetime_obj(date_st, time_st):
+def get_datetime_obj(date_st, time_st, start=True):
     datetime_st = f'{date_st} {time_st}'
-    datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M') - datetime.timedelta(minutes=2)
+
+    if start:
+        datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M') - datetime.timedelta(minutes=2)
+    else:
+        datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M') + datetime.timedelta(minutes=2)
+
     if datetime_obj.hour < 2:
         datetime_obj += datetime.timedelta(hours=24)
-    return datetime_obj
+    return datetime_obj.strftime('%Y-%m-%d %H:%M')
 
 
 def make_dirs():
@@ -998,7 +995,6 @@ class App(tk.Tk):
         self.edit_btn = None
         self.show_btn = None
         self.chrome_btn = None
-        self.download_btn = None
         self.settings_btn = None
         self.buttons = []
         self.button_style = ttk.Style()
@@ -1047,15 +1043,12 @@ class App(tk.Tk):
                                      compound='image', takefocus=False, state='disabled',
                                      command=lambda: Thread(target=run_webdriver).start()
                                      )  # button10
-        self.download_btn = ttk.Button(self.btn_frame, image=self.icons['download_icon'], compound='image', state='disabled',
-                                       takefocus=False, command=lambda: Thread(target=self.download_routes).start()
-                                       )  # button11
         self.settings_btn = ttk.Button(self.btn_frame, image=self.icons['settings_icon'], compound='image',
                                        command=lambda: ConfigWindow(), takefocus=False
 
                                        )
         self.buttons.extend((self.start_btn, self.break_btn, self.screen_btn, self.cancel_btn,
-                             self.edit_btn, self.download_btn, self.play_btn,
+                             self.edit_btn,  self.play_btn,
                              self.stop_btn, self.chrome_btn))
 
     def pack(self):
@@ -1077,8 +1070,8 @@ class App(tk.Tk):
         self.pause_btn.grid(row=0, column=1, padx=30, pady=10)
         self.stop_btn.grid(row=0, column=2, padx=30, pady=10)
         self.chrome_btn.grid(row=4, column=4, pady=10, padx=20)
-        self.download_btn.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
-        self.settings_btn.grid(row=7, column=4, pady=10, padx=30, sticky='nsew')
+        self.settings_btn.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
+
 
         self.table.rowconfigure(0, pad=15)
         self.grid_columnconfigure(0, weight=1)
@@ -1090,7 +1083,6 @@ class App(tk.Tk):
         self.table.autoclicker.pause()
         block_buttons(self.pause_btn, self.skip_btn)
         activate_buttons(self.play_btn)
-        self.table.autoclicker.widgets.clear()
 
     def close_autoclicker(self):
         self.table.autoclicker.stop()
