@@ -13,6 +13,7 @@ from tkinter import filedialog as fd
 import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
+from loger import Loger
 
 months = {
     1: 'Январь',
@@ -82,7 +83,6 @@ class ConfigWindow(tk.Toplevel):
         self.timeout_label.pack(anchor='w')
         self.timeout_spinbox.pack(anchor='w')
         self.btn_set.pack(side=tk.RIGHT, padx=15)
-
 
     def fill_out_fields(self):
         profile_path = config['profile_path']
@@ -311,15 +311,17 @@ class Table(ttk.Treeview):
                 else:
                     break
 
-            except NoSuchWindowException:
+            except NoSuchWindowException as err:
                 self.autoclicker.pause()
                 activate_buttons(app.play_btn)
                 show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
+                Loger.enter_in_log(err)
 
-            except Exception:
+            except Exception as err:
                 self.autoclicker.pause()
                 activate_buttons(app.play_btn)
                 show_error('Упс! Возникла ошибка при построении трека!')
+                Loger.enter_in_log(err)
 
         block_buttons(app.skip_btn)
 
@@ -367,11 +369,13 @@ class Table(ttk.Treeview):
             if not reset:
                 self.current_bus_numb = bus_numb
 
-        except NoSuchWindowException:
+        except NoSuchWindowException as err:
             show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
+            Loger.enter_in_log(err)
 
-        except Exception:
+        except Exception as err:
             show_error('Упс! Возникла ошибка при построении трека!')
+            Loger.enter_in_log(err)
 
     def item_selected(self, event):
         if len(self.selection()):
@@ -1119,10 +1123,14 @@ class App(tk.Tk):
             make_dirs()
             if rd.report_type == 'НС':
                 get_paths()
-        except PermissionError:
+
+        except PermissionError as err:
             show_error("Открыт файл эксель с неучтенными рейсами. Закройте файл и перезапустите приложение!")
-        except Exception:
+            Loger.enter_in_log(err)
+
+        except Exception as err:
             show_error("Возникла ошибка! Перезапустите приложение!")
+            Loger.enter_in_log(err)
 
     def show_load_window(self):
         self.load_window = LoadWindow(self)
