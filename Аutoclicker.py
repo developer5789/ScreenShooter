@@ -1,5 +1,4 @@
 from selenium import webdriver as wb
-from collections import defaultdict
 import time
 
 
@@ -9,8 +8,8 @@ class AutoClicker:
         self.browser = None
         self.state = 1
         self.skip = False
-        self.js_script = ''
-        self.read_js()
+        self.js_st = 'myArr = [{{"number": "{number}", "datefrom": "{date_from}",' \
+                     ' "dateto": "{date_to}"}}];setval(0);'
 
     def __bool__(self):
         if self.browser:
@@ -23,10 +22,10 @@ class AutoClicker:
                                             $("#button-1154-btnIconEl").click();""")
             time.sleep(0.5)
 
-        js_code = self.js_script.format(number=bus_numb,
-                                        date_from=datetime_from,
-                                        date_to=datetime_to)
-        self.browser.execute_script(js_code)
+        js_script = self.js_st.format(number=bus_numb,
+                                      date_from=datetime_from,
+                                      date_to=datetime_to)
+        self.browser.execute_script(js_script)
 
     def run_webdriver(self):
         self.browser = wb.Chrome(options=self.get_options())
@@ -47,7 +46,3 @@ class AutoClicker:
 
     def skip_route(self):
         self.skip = True
-
-    def read_js(self):
-        with open('script.js', encoding='utf-8') as f:
-            self.js_script = f.read()
