@@ -19,11 +19,12 @@ class AutoClicker:
 
     def __call__(self, bus_numb, datetime_from, datetime_to, reset):
         if not self.setInterface:
-            self.browser.execute_script("Ext.getCmp('combobox-1032').setValue('1h')")
+            self.browser.execute_script("document.getElementById('combobox-1032-inputEl').value = 'Последний час';")
             self.setInterface = 1
+            time.sleep(0.5)
 
         if reset:
-            self.browser.execute_script("""Ext.getCmp('textfield-1123').setValue('q');
+            self.browser.execute_script("""document.getElementById('textfield-1123-inputEl').value = 'q';
                                             $("#button-1154-btnIconEl").click();""")
             time.sleep(0.5)
 
@@ -33,6 +34,7 @@ class AutoClicker:
 
     def run_webdriver(self):
         self.browser = wb.Chrome(options=self.get_options())
+        self.browser.get('https://reg-rnis.mos.ru/')
 
     def get_options(self):
         chrome_options = wb.ChromeOptions()
@@ -52,5 +54,5 @@ class AutoClicker:
         self.skip = True
 
     def read_setval(self):
-        with open('setval.txt', encoding='utf-8') as f:
+        with open('new_setval.js', encoding='utf-8') as f:
             self.setval = f.read()

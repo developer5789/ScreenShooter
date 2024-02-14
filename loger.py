@@ -11,5 +11,5 @@ class Loger:
     @staticmethod
     def write(err_message):
         with open('errors_log.txt', 'a') as f:
-            f.write(err_message + f'\n {len(err_message)*'-'} \n')
+            f.write(err_message + f"\n {len(err_message)*'-'} \n")
 
