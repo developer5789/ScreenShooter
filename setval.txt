@@ -1,0 +1,29 @@
+function setval(number, datefrom, dateto){
+    if(
+        Ext.getCmp('combobox-1032')
+    ){
+        if(Ext.getCmp('combobox-1032').getValue()!='interval'){
+            Ext.getCmp('combobox-1032').setValue('interval');
+            Ext.getCmp('datefield-1033').show();
+            Ext.getCmp('datefield-1034').show();
+            $("#button-1165-btnIconEl").click();
+            $("#ext-183-btnIconEl").click();
+
+            Ext.getCmp('container-1011').setHeight(0);
+            Ext.getCmp('pagingtoolbar-1166').setHeight(0);
+            Ext.getCmp('tabpanel-1321').hide();
+            Ext.getCmp('panel-1326').hide();
+
+            Ext.getCmp('panel-1320-splitter').setHeight(0);
+        }
+        Ext.getCmp('textfield-1123').setValue(number);
+        Ext.getCmp('datefield-1033').setValue(datefrom);
+        Ext.getCmp('datefield-1034').setValue(dateto);
+        $("#button-1154-btnIconEl").click();
+
+        setTimeout("$('.x-grid-item:first-child .x-grid-cell:nth-child(2)').click()",1000);
+    }
+    else{
+        alert("Внимание, компоненты интерфейса изменились! Попробуйте перезапустить браузер!");
+    }
+};

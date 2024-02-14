@@ -8,8 +8,9 @@ class AutoClicker:
         self.browser = None
         self.state = 1
         self.skip = False
-        self.js_st = 'myArr = [{{"number": "{number}", "datefrom": "{date_from}",' \
-                     ' "dateto": "{date_to}"}}];setval(0);'
+        self.setInterface = 0
+        self.setval = ''
+        self.read_setval()
 
     def __bool__(self):
         if self.browser:
@@ -17,15 +18,18 @@ class AutoClicker:
         return False
 
     def __call__(self, bus_numb, datetime_from, datetime_to, reset):
+        if not self.setInterface:
+            self.browser.execute_script("Ext.getCmp('combobox-1032').setValue('1h')")
+            self.setInterface = 1
+
         if reset:
             self.browser.execute_script("""Ext.getCmp('textfield-1123').setValue('q');
                                             $("#button-1154-btnIconEl").click();""")
             time.sleep(0.5)
 
-        js_script = self.js_st.format(number=bus_numb,
-                                      date_from=datetime_from,
-                                      date_to=datetime_to)
-        self.browser.execute_script(js_script)
+        setval_call = f'setval("{bus_numb}", "{datetime_from}", "{datetime_to}");'
+
+        self.browser.execute_script(self.setval + setval_call)
 
     def run_webdriver(self):
         self.browser = wb.Chrome(options=self.get_options())
@@ -46,3 +50,7 @@ class AutoClicker:
 
     def skip_route(self):
         self.skip = True
+
+    def read_setval(self):
+        with open('setval.txt', encoding='utf-8') as f:
+            self.setval = f.read()
