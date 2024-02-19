@@ -325,11 +325,12 @@ class Table(ttk.Treeview):
 
         block_buttons(app.skip_btn)
 
-    def cancel(self):  # надо посмотреть
+    def cancel(self):
         item_id = str(self.current_item)
-        values = self.item(str(self.current_item))['values']
-        screen_path, screen, root_dir = values[7], values[6], values[13]
+
         if item_id in self.edited_items:
+            values = self.item(str(self.current_item))['values']
+            screen_path, screen, root_dir = values[7], values[6], values[13]
             if screen_path:
                 self.del_screen(screen_path, root_dir)
             for i, value in enumerate(self.edited_items[item_id]['old_values']):
@@ -341,6 +342,8 @@ class Table(ttk.Treeview):
                 self.yview_scroll(1, 'units')
             if screen:
                 app.res_panel.subtract_flight()
+
+            self.set(str(self.current_item), 9, 0)
             del self.edited_items[item_id]
 
     @staticmethod
@@ -402,26 +405,27 @@ class Table(ttk.Treeview):
             return
         if values is None:
             values = self.item(str(self.current_item))['values']
-        if action == '1' and values[6]:
+        screen = values[7]
+        if action == '1' and screen:
             screen_path = self.make_screenshot(values, True)
             self.set(str(self.current_item), 6, action)
             self.set(str(self.current_item), 7, screen_path)
             self.set(str(self.current_item), 9, 1)
-            self.down(True)
-        elif action == '1' and not values[6]:
-            self.append_to_edited(values)
+            self.down(screen)
+        if action == '1' and not screen:
             screen_path = self.make_screenshot(values)
+            self.append_to_edited(values)
             self.set(str(self.current_item), 7, screen_path)
             self.set(str(self.current_item), 6, action)
-            self.down()
-        else:
-            self.down()
+            self.down(screen)
+
 
     def append_to_edited(self, values):
         if str(self.current_item) not in self.edited_items:
             self.edited_items[str(self.current_item)] = {
                 'old_values': values,
             }
+
 
     def check(self):
         screen_path = self.item(str(self.current_item))['values'][7]
@@ -434,32 +438,29 @@ class Table(ttk.Treeview):
         screen_path = self.item(str(self.current_item))['values'][7]
         os.startfile(screen_path)
 
-    def color_after_action(self, offset, exc):
+    def color_after_action(self, offset, screen):
         self.item(str(self.current_item), tags=('gray_colored',))
-        if self.item(str(self.current_item + offset))['values'][6] and not exc:
+        if self.item(str(self.current_item + offset))['values'][6] and not screen:
             self.item(str(self.current_item + offset), tags=('green_colored',))
             self.set(str(self.current_item + offset), 11, 'green_colored')
-        elif self.item(str(self.current_item + offset))['values'][6] and exc:
+        elif self.item(str(self.current_item + offset))['values'][6] and screen:
             self.item(str(self.current_item + offset), tags=('blue_colored',))
             self.set(str(self.current_item + offset), 11, 'blue_colored')
-        # else:
-        #     self.item(str(self.current_item + offset), tags=('white_colored',))
-        #     self.set(str(self.current_item + offset), 11, 'white_colored')
+
 
     def color(self, offset):
         colour = self.item(str(self.current_item + offset))['values'][11]
         self.item(str(self.current_item), tags=('gray_colored',))
         self.item(str(self.current_item + offset), tags=(colour,))
 
-    def down(self, edited=False):
+    def down(self, screen):
         if self.current_item + 1 < self.table_size:
-            exc = self.item(str(self.current_item))['values'][9]
             self.current_item += 1
-            self.color_after_action(-1, exc)
+            self.color_after_action(-1, screen)
             self.check()
             self.yview_scroll(1, 'units')
         else:
-            if edited:
+            if screen:
                 self.set(str(self.current_item), 11, 'blue_colored')
             else:
                 self.set(str(self.current_item), 11, 'green_colored')
@@ -481,11 +482,12 @@ class Table(ttk.Treeview):
             block_buttons(*app.buttons)
         rd.dict_problems.clear()
 
-    def make_screenshot(self, values, exc=False, edited=False):
-        if not edited:
+    def make_screenshot(self, values, exc=False):
+        screen_path = values[7]
+
+        if not screen_path:
             screen_path = self.get_screen_path(values)
-        else:
-            screen_path = self.item(str(self.current_item))['values'][7]
+
 
         screen = pg.screenshot(region=(x, y, width, height))
         screen.save(screen_path)

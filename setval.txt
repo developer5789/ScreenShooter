@@ -24,6 +24,7 @@ function setval(number, datefrom, dateto){
         setTimeout("$('.x-grid-item:first-child .x-grid-cell:nth-child(2)').click()",1000);
     }
     else{
-        alert("Внимание, компоненты интерфейса изменились! Попробуйте перезапустить браузер!");
+        alert("Внимание, компоненты интерфейса изменились! Необходимо перезапустить браузер!");
     }
 };
+
