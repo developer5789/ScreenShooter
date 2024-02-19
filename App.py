@@ -320,7 +320,7 @@ class Table(ttk.Treeview):
             except Exception as err:
                 self.autoclicker.pause()
                 activate_buttons(app.play_btn)
-                show_error('Упс! Возникла ошибка при построении трека!')
+                show_error('Возникла ошибка при построении трека!Попробуйте перезагрузить страницу!')
                 Loger.enter_in_log(err)
 
         block_buttons(app.skip_btn)

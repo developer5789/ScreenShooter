@@ -35,6 +35,7 @@ class AutoClicker:
         self.read_setval()
         self.browser = wb.Chrome(options=self.get_options())
         self.browser.get('https://reg-rnis.mos.ru/')
+        self.setInterface = 0
 
     def get_options(self):
         chrome_options = wb.ChromeOptions()
