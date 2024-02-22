@@ -920,14 +920,15 @@ def run_webdriver():
 
 def get_datetime_obj(date_st, time_st, start=True):
     datetime_st = f'{date_st} {time_st}'
-
-    if start:
-        datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M') - datetime.timedelta(minutes=2)
-    else:
-        datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M') + datetime.timedelta(minutes=2)
-
+    datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M')
     if datetime_obj.hour < 2:
         datetime_obj += datetime.timedelta(hours=24)
+
+    if start:
+        datetime_obj -= datetime.timedelta(minutes=2)
+    else:
+        datetime_obj += datetime.timedelta(minutes=2)
+
     return datetime_obj.strftime('%Y-%m-%d %H:%M')
 
 
