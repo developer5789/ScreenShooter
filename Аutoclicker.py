@@ -1,5 +1,6 @@
 from selenium import webdriver as wb
 import time
+import json
 
 
 class AutoClicker:
@@ -53,12 +54,16 @@ class AutoClicker:
         self.read_setval()
         self.browser = wb.Chrome(options=self.get_options())
         self.browser.get('https://reg-rnis.mos.ru/')
+        self.browser.execute_cdp_cmd('Network.enable', {})
         self.setInterface = 0
 
     def get_options(self):
         """Создает и возвращает параметры обьекта chromedriver."""
         chrome_options = wb.ChromeOptions()
         chrome_options.add_experimental_option("excludeSwitches", ['enable-automation'])
+        chrome_options.add_experimental_option('detach', True)
+        chrome_options.add_argument('--enable-logging')
+        chrome_options.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
         if self.profile_path:
             chrome_options.add_argument(fr'user-data-dir={self.profile_path}')
         return chrome_options
@@ -83,3 +88,20 @@ class AutoClicker:
         """Читает js-код из файла 'setval.txt'"""
         with open('setval.txt', encoding='utf-8') as f:
             self.setval = f.read()
+
+    def check_track(self):
+        log_entries = self.browser.get_log("performance")
+        for entry in log_entries:
+            message_obj = json.loads(entry.get("message"))
+            message = message_obj.get("message")
+            method = message.get("method")
+
+            if method == 'Network.responseReceived':
+                response_url = message.get('params', {}).get('response', {}).get('url', '')
+                if 'https://reg-rnis.mos.ru/service/geo/layerstracks' in response_url:
+                    request_id = message.get('params', {}).get('requestId', '')
+                    response = self.browser.execute_cdp_cmd('Network.getResponseBody', {'requestId': request_id})
+                    response_body = json.loads(response.get('body', ''))
+                    cords = list(response_body['result'].values())[0]
+                    return f'Трек есть' if cords else 'Нет трека'
+

@@ -337,6 +337,7 @@ class Table(ttk.Treeview):
                 reset = True if bus_numb == self.current_bus_numb else False
                 self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
                 time.sleep(timeout)
+                print(self.autoclicker.check_track())
 
                 if self.autoclicker.skip:
                     self.autoclicker.skip = False
@@ -415,6 +416,8 @@ class Table(ttk.Treeview):
             datetime_to = self.get_datetime_str(values[0], values[4], start=False)
             reset = True if bus_numb == self.current_bus_numb else False
             self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
+            time.sleep(timeout)
+            print(self.autoclicker.check_track())
 
             if not reset:
                 self.current_bus_numb = bus_numb
