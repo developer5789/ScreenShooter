@@ -21,7 +21,13 @@ function setval(number, datefrom, dateto){
         Ext.getCmp('datefield-1034').setValue(dateto);
         $("#button-1154-btnIconEl").click();
 
-        setTimeout("$('.x-grid-item:first-child .x-grid-cell:nth-child(2)').click()",1000);
+
+        const find_item = setInterval(() => {
+                        if (Ext.getCmp('gridview-1120')){
+                            $('.x-grid-item:first-child .x-grid-cell:nth-child(2)').click();
+                            clearInterval(find_item)
+                                                        }
+                            }, 500);
     }
     else{
         alert("Внимание, компоненты интерфейса изменились! Необходимо перезапустить браузер!");
