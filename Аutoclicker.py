@@ -48,7 +48,6 @@ class AutoClicker:
         setval_call = f'setval("{bus_numb}", "{datetime_from}", "{datetime_to}");'
 
         self.browser.execute_script(self.setval + setval_call)
-
     def run_webdriver(self):
         """Открывает браузер и сайт РНИС."""
         self.read_setval()

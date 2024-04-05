@@ -23,10 +23,13 @@ function setval(number, datefrom, dateto){
 
 
         const find_item = setInterval(() => {
-                        if (Ext.getCmp('gridview-1120')){
+                        if ($('#gridview-1120 table').length > 0){
                             $('.x-grid-item:first-child .x-grid-cell:nth-child(2)').click();
                             clearInterval(find_item)
                                                         }
+                        if($('.x-grid-empty').length > 0)
+                            {Ext.getCmp('textfield-1123').setValue(number);
+                             $("#button-1154-btnIconEl").click()}
                             }, 500);
     }
     else{
