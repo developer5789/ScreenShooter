@@ -27,10 +27,8 @@ function setval(number, datefrom, dateto){
                             $('.x-grid-item:first-child .x-grid-cell:nth-child(2)').click();
                             clearInterval(find_item)
                                                         }
-                        if($('.x-grid-empty').length > 0)
-                            {Ext.getCmp('textfield-1123').setValue(number);
-                             $("#button-1154-btnIconEl").click()}
-                            }, 500);
+                            }, 1000);
+
     }
     else{
         alert("Внимание, компоненты интерфейса изменились! Необходимо перезапустить браузер!");

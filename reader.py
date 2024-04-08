@@ -36,11 +36,11 @@ class Reader:
             if type(row[2].value) == datetime.datetime and row[18].value is None:
                 self.total += 1
                 date = self.convert_date_to_str(row[2].value)
-                route = row[1].value
+                route = self.get_int(row[1].value)
                 bus_numb = self.get_bus_numb(row[11].value)
                 self.routes_dict[date][route][bus_numb].append(
                     {
-                        'direction': row[3].value,
+                        'direction': self.get_int(row[3].value),
                         'start_time': self.convert_time_to_str(row[7].value),
                         'finish_time': self.convert_time_to_str(row[8].value),
                         'screen': None,
@@ -54,6 +54,13 @@ class Reader:
         self.app.load_window.progress_text_var.set(f'Файл {self.file_path} прочитан')
         self.app.load_window.progress_var.set(100)
         self.app.load_window.ok_btn['state'] = 'normal'
+
+    @staticmethod
+    def get_int(value):
+        try:
+            return int(value)
+        except Exception:
+            return value
 
     @staticmethod
     def get_bus_numb(bus_numb: str):
@@ -73,6 +80,8 @@ class Reader:
         """
         if time_obj is None or time_obj == '':
             return ''
+        if time_obj and type(time_obj) == str:
+            return time_obj
         if type(time_obj) == datetime.time or type(time_obj) == datetime.datetime:
             return time_obj.strftime('%H:%M')
 

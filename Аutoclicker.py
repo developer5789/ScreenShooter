@@ -13,7 +13,7 @@ class AutoClicker:
         """
         self.profile_path = profile_path
         self.browser = None
-        self.state = 1
+        self.state = 0
         self.skip = False
         self.setInterface = 0
         self.setval = ''
@@ -48,6 +48,7 @@ class AutoClicker:
         setval_call = f'setval("{bus_numb}", "{datetime_from}", "{datetime_to}");'
 
         self.browser.execute_script(self.setval + setval_call)
+
     def run_webdriver(self):
         """Открывает браузер и сайт РНИС."""
         self.read_setval()
@@ -89,6 +90,18 @@ class AutoClicker:
             self.setval = f.read()
 
     def check_track(self):
+        for i in range(10):
+            cords = self.find_cords()
+            if cords:
+                time.sleep(0.5)
+                return True
+            elif cords is not None:
+                return False
+            else:
+                time.sleep(0.5)
+
+
+    def find_cords(self):
         log_entries = self.browser.get_log("performance")
         for entry in log_entries:
             message_obj = json.loads(entry.get("message"))
@@ -96,11 +109,28 @@ class AutoClicker:
             method = message.get("method")
 
             if method == 'Network.responseReceived':
-                response_url = message.get('params', {}).get('response', {}).get('url', '')
-                if 'https://reg-rnis.mos.ru/service/geo/layerstracks' in response_url:
+                response_url: str = message.get('params', {}).get('response', {}).get('url', '')
+                if response_url.startswith('https://reg-rnis.mos.ru/service/geo/layerstracks'):
                     request_id = message.get('params', {}).get('requestId', '')
                     response = self.browser.execute_cdp_cmd('Network.getResponseBody', {'requestId': request_id})
                     response_body = json.loads(response.get('body', ''))
                     cords = list(response_body['result'].values())[0]
-                    return f'Трек есть' if cords else 'Нет трека'
+                    return len(cords) > 25
+
+    def focus_on_track(self, table): # надо доработать
+        previous_id = table.current_item - 1
+        previous_route = table.item(str(previous_id))['values'][1] if previous_id >= 0 else None
+        current_route = table.item(str(previous_id + 1))['values'][1]
+        if current_route != previous_route or previous_route is None:
+            try:
+                self.browser.execute_script("""let points = $("#panel-1258-innerCt table");
+                                            const m = (points.length - points.length  % 2) / 2;
+                                            points[m].click();
+                                            flag = document.querySelector('.ol-overlay-container');
+                                            if (flag){
+                                            flag.remove()
+                                            };
+                                            """)
+            except Exception as err:
+                pass
 

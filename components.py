@@ -309,8 +309,10 @@ class Table(ttk.Treeview):
         self.tag_configure('green_colored', background='#98FB98')
         self.tag_configure('white_colored', background='white')
         self.tag_configure('blue_colored', background='#00BFFF')
+        self.tag_configure('red_colored', background='#FFA07A')
         self.style = ttk.Style()
         self.style.configure('Treeview', font=('Arial', 13), rowheight=60, separator=100)
+        self.style.map('Treeview', background=[('selected', '#D3D3D3')], foreground=[('selected', 'black')])
         self.heading_style = ttk.Style()
         self.heading_style.configure('Treeview.Heading', font=('Arial', 12))
         self.bind('<<TreeviewSelect>>', self.select_item)
@@ -328,7 +330,7 @@ class Table(ttk.Treeview):
         block_buttons(self.app.btn_panel.play_btn)
         activate_buttons(self.app.btn_panel.pause_btn, self.app.btn_panel.skip_btn)
 
-        while self.current_item < self.table_size and self.autoclicker.state:
+        while self.autoclicker.state:
             try:
                 values = self.item(str(self.current_item))['values']
                 bus_numb = values[5]
@@ -336,18 +338,27 @@ class Table(ttk.Treeview):
                 datetime_to = self.get_datetime_str(values[0], values[4], start=False)
                 reset = True if bus_numb == self.current_bus_numb else False
                 self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
-                time.sleep(timeout)
-                print(self.autoclicker.check_track())
+                time.sleep(2)
+                track = self.autoclicker.check_track()
 
-                if self.autoclicker.skip:
+                if self.autoclicker.skip: # если скипнуть на последнем элементе?
                     self.autoclicker.skip = False
-                    self.current_item += 1
-                    self.color(-1)
-                elif self.autoclicker.state:
-                    self.execute_command(values, '1')
+                    self.next_item()
+                elif self.autoclicker.state and track:
+                    self.autoclicker.focus_on_track(self)
+                    self.execute_command(values, 1)
                     if not reset:
                         self.current_bus_numb = bus_numb
+                elif self.autoclicker.state and track is not None:
+                    self.execute_command(values, 0)
+                    if not reset:
+                        self.current_bus_numb = bus_numb
+                elif self.autoclicker.state and track is None:
+                    continue
                 else:
+                    break
+
+                if self.current_item == self.table_size - 1:
                     break
 
             except NoSuchWindowException as err:
@@ -364,6 +375,15 @@ class Table(ttk.Treeview):
 
         block_buttons(self.app.btn_panel.skip_btn)
 
+    def select_item(self, event):
+        self.current_item = int(self.selection()[0])
+        self.check()
+
+    def next_item(self):
+        if int(self.current_item) + 1 < self.table_size:
+            next_id = str(int(self.current_item) + 1)
+            self.selection_set((next_id, ))
+
     def cancel(self):
         """Отмена всех операций, сделанных со строкой таблицы:
         удаление скриншота, значения ячеек возвращаются к исходным, удаление заливки
@@ -371,22 +391,16 @@ class Table(ttk.Treeview):
         item_id = str(self.current_item)
 
         if item_id in self.edited_items:
-            values = self.item(str(self.current_item))['values']
+            values = self.item(item_id)['values']
             screen_path, screen, root_dir = values[7], values[6], values[13]
             if screen_path:
                 self.del_screen(screen_path, root_dir)
-            for i, value in enumerate(self.edited_items[item_id]['old_values']):
-                self.set(item_id, i, value)
-            if self.current_item + 1 < self.table_size:
+            if item_id + 1 < self.table_size:
                 self.current_item += 1
                 self.color(-1)
                 self.check()
                 self.yview_scroll(1, 'units')
-            if screen:
-                self.app.res_panel.subtract_route()
 
-            self.set(str(self.current_item), 9, 0)
-            del self.edited_items[item_id]
 
 
     def del_screen(self, screen_path: str, root_dir: str):
@@ -416,8 +430,6 @@ class Table(ttk.Treeview):
             datetime_to = self.get_datetime_str(values[0], values[4], start=False)
             reset = True if bus_numb == self.current_bus_numb else False
             self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
-            time.sleep(timeout)
-            print(self.autoclicker.check_track())
 
             if not reset:
                 self.current_bus_numb = bus_numb
@@ -430,19 +442,6 @@ class Table(ttk.Treeview):
             show_error('Упс! Возникла ошибка при построении трека!')
             Loger.enter_in_log(err)
 
-    def select_item(self, event):
-        """Смещает фокус на строку при клике."""
-        if len(self.selection()):
-            offset = self.current_item - int(self.selection()[0])
-            if offset:
-                selected_item = self.current_item - offset
-                self.selection_remove(str(selected_item))
-                self.current_item = selected_item
-                self.color(offset)
-                self.check()
-            else:
-                self.selection_remove(str(self.current_item))
-
 
     def execute_command(self, values=None, action=None):
         """Выполняет переданную команду
@@ -451,23 +450,26 @@ class Table(ttk.Treeview):
             values(list, None): список значений ячеек строки,
             action(str, None): номер исполняемой команды (1-скрин)
             """
-        if self.current_item > self.table_size - 1:
-            return
         if values is None:
             values = self.item(str(self.current_item))['values']
         screen = values[7]
-        if action == '1' and screen:
+        if action and screen:
             screen_path = self.make_screenshot(values, True)
             self.set(str(self.current_item), 6, action)
             self.set(str(self.current_item), 7, screen_path)
-            self.set(str(self.current_item), 9, 1)
-            self.down(screen)
-        if action == '1' and not screen:
+            self.down()
+        elif action and not screen:
             screen_path = self.make_screenshot(values)
             self.append_to_edited(values)
             self.set(str(self.current_item), 7, screen_path)
             self.set(str(self.current_item), 6, action)
-            self.down(screen)
+            self.down()
+        elif not action and not screen:
+            self.set(str(self.current_item), 6, action)
+            self.append_to_edited(values)
+            self.down()
+        else:
+            pass
 
 
     def append_to_edited(self, values: list):
@@ -493,45 +495,24 @@ class Table(ttk.Treeview):
         screen_path = self.item(str(self.current_item))['values'][7]
         os.startfile(screen_path)
 
-    def color_after_action(self, offset: int, screen: str):
-        """Заливка после выполнения команды
+    def color(self):
+        """Заливка после выполнения команды"""
 
-        Аргументы:
-            offset(int): смещение фокуса,
-            screen(str): путь до скрина
-
-            """
-        self.item(str(self.current_item), tags=('gray_colored',))
-        if self.item(str(self.current_item + offset))['values'][6] and not screen:
-            self.item(str(self.current_item + offset), tags=('green_colored',))
-            self.set(str(self.current_item + offset), 11, 'green_colored')
-        elif self.item(str(self.current_item + offset))['values'][6] and screen:
-            self.item(str(self.current_item + offset), tags=('blue_colored',))
-            self.set(str(self.current_item + offset), 11, 'blue_colored')
+        if self.item(str(self.current_item))['values'][6]:
+            self.item(str(self.current_item ), tags=('green_colored',))
+        else:
+            self.item(str(self.current_item), tags=('red_colored',))
 
 
-    def color(self, offset):
-        """Заливка при смещении фокуса без команд
-
-        Аргументы:
-            offset(int): смещение фокуса
-        """
-        colour = self.item(str(self.current_item + offset))['values'][11]
-        self.item(str(self.current_item), tags=('gray_colored',))
-        self.item(str(self.current_item + offset), tags=(colour,))
-
-    def down(self, screen: str):
+    def down(self):
         """Переключение на следующую строку таблицы после исполнения команды."""
         if self.current_item + 1 < self.table_size:
-            self.current_item += 1
-            self.color_after_action(-1, screen)
-            self.check()
+            self.color()
+            self.next_item()
             self.yview_scroll(1, 'units')
         else:
-            if screen:
-                self.set(str(self.current_item), 11, 'blue_colored')
-            else:
-                self.set(str(self.current_item), 11, 'green_colored')
+            self.color()
+            self.check()
 
     def fill_out_table(self, rd):
         """Заполняет таблицу значениями из прочитанного документа excel
@@ -550,7 +531,7 @@ class Table(ttk.Treeview):
             self.insert('', 'end', values=values, iid=str(counter))
         self.table_size = counter + 1
         if self.table_size:
-            self.item(str(self.current_item), tags=('gray_colored',))
+            self.selection_set(('0', ))
         else:
             block_buttons(*self.app.btn_panel.buttons)
         rd.routes_dict.clear()
@@ -645,14 +626,15 @@ class Table(ttk.Treeview):
                 start(bool): начало или конец рейса.
         """
         datetime_st = f'{date_st} {time_st}'
-
-        if start:
-            datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M') - datetime.timedelta(minutes=2)
-        else:
-            datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M') + datetime.timedelta(minutes=2)
-
+        datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M')
         if datetime_obj.hour < 2:
             datetime_obj += datetime.timedelta(hours=24)
+
+        if start:
+            datetime_obj -= datetime.timedelta(minutes=2)
+        else:
+            datetime_obj += datetime.timedelta(minutes=2)
+
         return datetime_obj.strftime('%Y-%m-%d %H:%M')
 
     def get_paths(self):
@@ -959,7 +941,7 @@ class ButtonPanel:
                                    compound='image', takefocus=False, command=self.root.close_autoclicker,
                                    )
         self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
-                                     compound='image', takefocus=False, command=self.root.table.cancel,
+                                     compound='image', takefocus=False, command=self.root.table.hide_item,
                                      )
         self.edit_btn = ttk.Button(self.btn_frame, image=self.icons['edit_icon'],
                                    compound='image', takefocus=False, state='disabled',
