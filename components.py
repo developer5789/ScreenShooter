@@ -321,7 +321,7 @@ class Table(ttk.Treeview):
         self.current_item = 0
         self.edited_items = {}
         self.autoclicker = AutoClicker(profile_path)
-        self.current_bus_numb = None
+        self.bus_numb = None
 
     def run_autoclicker(self):
         """Запускается автоматический режим работы."""
@@ -336,7 +336,8 @@ class Table(ttk.Treeview):
                 bus_numb = values[5]
                 datetime_from = self.get_datetime_str(values[0], values[3])
                 datetime_to = self.get_datetime_str(values[0], values[4], start=False)
-                reset = True if bus_numb == self.current_bus_numb else False
+                reset = True if bus_numb == self.bus_numb else False
+                self.bus_numb = bus_numb
                 self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
                 time.sleep(2)
                 track = self.autoclicker.check_track()
@@ -347,12 +348,8 @@ class Table(ttk.Treeview):
                 elif self.autoclicker.state and track:
                     self.autoclicker.focus_on_track(self)
                     self.execute_command(values, 1)
-                    if not reset:
-                        self.current_bus_numb = bus_numb
                 elif self.autoclicker.state and track is not None:
                     self.execute_command(values, 0)
-                    if not reset:
-                        self.current_bus_numb = bus_numb
                 elif self.autoclicker.state and track is None:
                     continue
                 else:
@@ -380,9 +377,9 @@ class Table(ttk.Treeview):
         self.check()
 
     def next_item(self):
-        if int(self.current_item) + 1 < self.table_size:
-            next_id = str(int(self.current_item) + 1)
-            self.selection_set((next_id, ))
+        next_item = self.next(str(self.current_item))
+        if next_item:
+            self.selection_set((next_item, ))
 
     def cancel(self):
         """Отмена всех операций, сделанных со строкой таблицы:
@@ -400,8 +397,6 @@ class Table(ttk.Treeview):
                 self.color(-1)
                 self.check()
                 self.yview_scroll(1, 'units')
-
-
 
     def del_screen(self, screen_path: str, root_dir: str):
         """Удаление скриншота
@@ -428,11 +423,11 @@ class Table(ttk.Treeview):
             bus_numb = values[5]
             datetime_from = self.get_datetime_str(values[0], values[3])
             datetime_to = self.get_datetime_str(values[0], values[4], start=False)
-            reset = True if bus_numb == self.current_bus_numb else False
+            reset = True if bus_numb == self.bus_numb else False
             self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
 
             if not reset:
-                self.current_bus_numb = bus_numb
+                self.bus_numb = bus_numb
 
         except NoSuchWindowException as err:
             show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
@@ -941,7 +936,7 @@ class ButtonPanel:
                                    compound='image', takefocus=False, command=self.root.close_autoclicker,
                                    )
         self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
-                                     compound='image', takefocus=False, command=self.root.table.hide_item,
+                                     compound='image', takefocus=False, command=self.root.table.cancel,
                                      )
         self.edit_btn = ttk.Button(self.btn_frame, image=self.icons['edit_icon'],
                                    compound='image', takefocus=False, state='disabled',

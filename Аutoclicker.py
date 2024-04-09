@@ -1,4 +1,5 @@
 from selenium import webdriver as wb
+from selenium.common import exceptions
 import time
 import json
 
@@ -112,10 +113,20 @@ class AutoClicker:
                 response_url: str = message.get('params', {}).get('response', {}).get('url', '')
                 if response_url.startswith('https://reg-rnis.mos.ru/service/geo/layerstracks'):
                     request_id = message.get('params', {}).get('requestId', '')
-                    response = self.browser.execute_cdp_cmd('Network.getResponseBody', {'requestId': request_id})
-                    response_body = json.loads(response.get('body', ''))
-                    cords = list(response_body['result'].values())[0]
-                    return len(cords) > 25
+                    err_counter = 0
+                    while True:
+                        try:
+                            response = self.browser.execute_cdp_cmd('Network.getResponseBody', {'requestId': request_id})
+                            response_body = json.loads(response.get('body', ''))
+                            cords = list(response_body['result'].values())[0]
+                            return len(cords) > 30
+                        except exceptions.WebDriverException:
+                            if err_counter < 3:
+                                err_counter += 1
+                                time.sleep(0.5)
+                                continue
+                            break
+                    print(f'Ошибок {err_counter}')
 
     def focus_on_track(self, table): # надо доработать
         previous_id = table.current_item - 1
@@ -131,6 +142,8 @@ class AutoClicker:
                                             flag.remove()
                                             };
                                             """)
+                time.sleep(2)
+
             except Exception as err:
                 pass
 
