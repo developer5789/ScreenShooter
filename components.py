@@ -6,14 +6,16 @@ import datetime
 from datetime import timedelta
 import os
 import tkinter as tk
-from tkinter import  PhotoImage as Img
+from tkinter import PhotoImage as Img
 from tkinter import ttk
 from tkinter import filedialog as fd
+from ttkwidgets import CheckboxTreeview
 import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
 from loger import Loger
 from messages import show_inf, show_error
+
 
 def get_config():
     """Получаем найстроки пользователя из файла config.json"""
@@ -23,6 +25,7 @@ def get_config():
     x, y, width, height = config['screen_cords']
     profile_path = config['profile_path']
     timeout = config['timeout']
+
 
 def activate_buttons(*btns):
     """Переводит кнопки в активное состояние."""
@@ -34,6 +37,7 @@ def block_buttons(*btns):
     """Делает кнопки неактивными."""
     for btn in btns:
         btn['state'] = 'disabled'
+
 
 months = {
     1: 'Январь',
@@ -77,14 +81,13 @@ class ConfigWindow(tk.Toplevel):
         self.timeout_label = tk.Label(self.timeout_frame, text="Timeout (сек): ")
         self.timeout_var = tk.IntVar()
         self.timeout_spinbox = tk.Spinbox(self.timeout_frame, state='readonly',
-                                          to=10.0,  textvariable=self.timeout_var)
+                                          to=10.0, textvariable=self.timeout_var)
         self.btn_frame = ttk.Frame(self, padding=2)
         self.btn_set = ttk.Button(self.btn_frame, text='Применить', command=self.apply)
         self.pack_items()
         self.protocol('WM_DELETE_WINDOW', self.destroy)
         self.values = []
         self.fill_out_fields()
-
 
     def pack_items(self):
         """Размещает элементы внутри окна."""
@@ -114,9 +117,9 @@ class ConfigWindow(tk.Toplevel):
     def apply(self):
         """Сравнивает новые настройки со старыми и устанавливает новые,если отличаются."""
         new_values = [self.path_entry.get(),
-                    [int(val.strip()) for val in self.cords_entry.get().split(',')],
-                    self.timeout_var.get()
-        ]
+                      [int(val.strip()) for val in self.cords_entry.get().split(',')],
+                      self.timeout_var.get()
+                      ]
         if self.values != new_values:
             self.set_settings(new_values)
         self.destroy()
@@ -136,6 +139,64 @@ class ConfigWindow(tk.Toplevel):
         """Сохраняет настройки, записывая в файл 'config.json'"""
         with open('config.json', 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
+
+
+class FilterWindow(tk.Toplevel):
+    """Класс описывает окно фильтрации по столбцам таблицы."""
+
+    def __init__(self, ):
+        """Инициализация элементов окна,аттрибутов, настройка параметров
+
+        """
+        super().__init__()
+        self.geometry("270x320")
+        self.title('Фильтрация')
+        self.resizable(False, False)
+        self.grab_set()
+        self.btn_frame = ttk.Frame(self)
+        self.table_frame = ttk.Frame(self)
+        self.search_entry = ttk.Entry(self, justify='left', width=29, font=('Arial', 9))
+        self.table = CheckboxTreeview(self.table_frame, show='tree', height=8)
+        self.table.style = ttk.Style()
+        self.table.style.configure('Treeview', font=('Arial', 10), rowheight=25)
+        self.scroll = ttk.Scrollbar(self.table_frame, command=self.table.yview)
+        self.table.config(yscrollcommand=self.scroll.set)
+        self.ok_btn = ttk.Button(self.btn_frame, text='Ок', width=5)
+        self.cancel_btn = ttk.Button(self.btn_frame, text='Отмена')
+        self.img = Img(file=r'icons/filter_remove.png')
+        self.remove_filter_btn = ttk.Button(self, image=self.img,
+                                            compound='image', takefocus=False)
+        self.pack_items()
+        self.fill_out_table()
+
+    def pack_items(self):
+        """Размещает элементы внутри окна."""
+        self.search_entry.grid(row=0, column=0, sticky='nswe', pady=10, padx=10)
+        self.table.grid(row=0, column=0)
+        self.scroll.grid(row=0, column=1, sticky='ns')
+        self.ok_btn.grid(row=0, column=0, padx=15)
+        self.cancel_btn.grid(row=0, column=1, padx=10)
+        self.btn_frame.grid(row=2, column=0, pady=10, columnspan=2, sticky='nswe')
+        self.remove_filter_btn.grid(row=0, column=1)
+        self.table_frame.grid(row=1, column=0, columnspan=2, pady=10)
+
+    def fill_out_table(self):
+        self.table.insert("", "end", "1", text="1")
+        self.table.insert("", "end", "2", text="2")
+        self.table.insert("", "end", "3", text="3")
+        self.table.insert("", "end", "4", text="4")
+        self.table.insert("", "end", "5", text="5")
+        self.table.insert("", "end", "6", text="1")
+        self.table.insert("", "end", "7", text="2")
+        self.table.insert("", "end", "8", text="3")
+        self.table.insert("", "end", "9", text="4")
+        self.table.insert("", "end", "10", text="5")
+        self.table.insert("", "end", "11", text="1")
+        self.table.insert("", "end", "12", text="2")
+        self.table.insert("", "end", "13", text="3")
+        self.table.insert("", "end", "14", text="4")
+        self.table.insert("", "end", "15", text="5")
+        self.table.insert("", "end", "16", text="1")
 
 
 class EditWindow(tk.Toplevel):
@@ -185,7 +246,6 @@ class EditWindow(tk.Toplevel):
         self.pack_items()
         self.fill_out_fields()
         self.protocol('WM_DELETE_WINDOW', self.destroy)
-
 
     def pack_items(self):
         """Размещает элементы внутри окна."""
@@ -256,7 +316,6 @@ class EditWindow(tk.Toplevel):
                 }
         self.destroy()
 
-
     def change_counter(self, old_values, edited_values):
         """Меняет счетчик разобранных рейсов
 
@@ -290,7 +349,7 @@ class Table(ttk.Treeview):
             'route_icon': Img(file=r'icons/icons8-автобусный-маршрут-20.png')
 
         }
-        self.heading('date', text='Дата', anchor='w', image=self.icons['icon_time'])
+        self.heading('date', text='Дата', anchor='w', image=self.icons['icon_time'], command=lambda: FilterWindow())
         self.heading('route', text='Маршрут', anchor='w', image=self.icons['route_icon'])
         self.heading('direction', text='Направление', anchor='w', image=self.icons['icon_direction'], )
         self.heading("start", text="Начало", anchor='w', image=self.icons['icon_start'])
@@ -342,7 +401,7 @@ class Table(ttk.Treeview):
                 time.sleep(2)
                 track = self.autoclicker.check_track()
 
-                if self.autoclicker.skip: # если скипнуть на последнем элементе?
+                if self.autoclicker.skip:  # если скипнуть на последнем элементе?
                     self.autoclicker.skip = False
                     self.next_item()
                 elif self.autoclicker.state and track:
@@ -379,7 +438,7 @@ class Table(ttk.Treeview):
     def next_item(self):
         next_item = self.next(str(self.current_item))
         if next_item:
-            self.selection_set((next_item, ))
+            self.selection_set((next_item,))
 
     def cancel(self):
         """Отмена всех операций, сделанных со строкой таблицы:
@@ -437,7 +496,6 @@ class Table(ttk.Treeview):
             show_error('Упс! Возникла ошибка при построении трека!')
             Loger.enter_in_log(err)
 
-
     def execute_command(self, values=None, action=None):
         """Выполняет переданную команду
 
@@ -466,7 +524,6 @@ class Table(ttk.Treeview):
         else:
             pass
 
-
     def append_to_edited(self, values: list):
         """При редактировании добавляет элемент таблицы в self.edited_items.
         Сохраняются исходные значения ячеек строки таблицы.
@@ -475,7 +532,6 @@ class Table(ttk.Treeview):
             self.edited_items[str(self.current_item)] = {
                 'old_values': values,
             }
-
 
     def check(self):
         """Проверка на наличие скрина."""
@@ -494,10 +550,9 @@ class Table(ttk.Treeview):
         """Заливка после выполнения команды"""
 
         if self.item(str(self.current_item))['values'][6]:
-            self.item(str(self.current_item ), tags=('green_colored',))
+            self.item(str(self.current_item), tags=('green_colored',))
         else:
             self.item(str(self.current_item), tags=('red_colored',))
-
 
     def down(self):
         """Переключение на следующую строку таблицы после исполнения команды."""
@@ -526,7 +581,7 @@ class Table(ttk.Treeview):
             self.insert('', 'end', values=values, iid=str(counter))
         self.table_size = counter + 1
         if self.table_size:
-            self.selection_set(('0', ))
+            self.selection_set(('0',))
         else:
             block_buttons(*self.app.btn_panel.buttons)
         rd.routes_dict.clear()
@@ -546,7 +601,6 @@ class Table(ttk.Treeview):
 
         if not screen_path:
             screen_path = self.get_screen_path(values)
-
 
         screen = pg.screenshot(region=(x, y, width, height))
         screen.save(screen_path)
@@ -593,9 +647,9 @@ class Table(ttk.Treeview):
                 indx = screen_paths[root_dir][bus_numb]['max_value']
         else:
             screen_paths[root_dir][bus_numb] = {
-                                                'empty_positions': [],
-                                                'max_value': 1
-                                                }
+                'empty_positions': [],
+                'max_value': 1
+            }
             indx = screen_paths[root_dir][bus_numb]['max_value']
         return indx
 
@@ -648,15 +702,17 @@ class Table(ttk.Treeview):
                     if i not in lst_indx:
                         empty_pos.append(i)
                 numb_dict[numb] = {
-                                    'empty_positions': empty_pos,
-                                    'max_value': max_indx
-                                    }
+                    'empty_positions': empty_pos,
+                    'max_value': max_indx
+                }
             path = root_path + '\\' + dir
             screen_paths[path] = numb_dict
+
 
 class LoadWindow(tk.Toplevel):
     """Класс описывает окно  для выбора файла с рейсами и
     отображения """
+
     def __init__(self, app):
         """Инициализация элементов, аттрибутов, настройка параметров окна."""
         super().__init__()
@@ -711,7 +767,7 @@ class LoadWindow(tk.Toplevel):
             self.label_2.grid(row=2, column=0, columnspan=2, sticky='we')
             self.text_1.grid(row=3, column=0)
             self.btn_1.grid(row=3, column=1)
-            self.frame_1.pack(ipadx=225, pady=10 )
+            self.frame_1.pack(ipadx=225, pady=10)
             self.frame_2.pack()
             self.upload_btn.pack(side='right', padx=10)
         else:
@@ -743,6 +799,7 @@ class ResultPanel:
     счётчики скорости, прогнозируемого времени на работу, отработанного времени,
     общего кол-ва рейсов, разобранных рейсов, оставшихся рейсов.
     """
+
     def __init__(self, root: tk.Tk):
         """Инициализация элементов панели и аттрибутов."""
         self.root = root
@@ -842,7 +899,6 @@ class ResultPanel:
         if self.state:
             self.root.after(1000, self.run_time)
 
-
     def start(self):
         """Запускает работу счетчиков панели результатов."""
         block_buttons(self.root.btn_panel.start_btn)
@@ -866,8 +922,10 @@ class ResultPanel:
         except ZeroDivisionError:
             return 100.0
 
+
 class ButtonPanel:
     """Класс описывает панель с кнопками на графическом интерфейсе."""
+
     def __init__(self, root):
         """Инициализация аттрибутов
 
