@@ -144,30 +144,52 @@ class ConfigWindow(tk.Toplevel):
 class FilterWindow(tk.Toplevel):
     """Класс описывает окно фильтрации по столбцам таблицы."""
 
-    def __init__(self, ):
+    def __init__(self, app, colname):
         """Инициализация элементов окна,аттрибутов, настройка параметров
 
         """
         super().__init__()
+        self.app = app
+        self.main_table = app.table
+        self.colname = colname
         self.geometry("270x320")
-        self.title('Фильтрация')
+        self.title(f'Фильтрация')
         self.resizable(False, False)
         self.grab_set()
+        self.geometry("+{}+{}".format(self.app.winfo_rootx() + 50, self.app.winfo_rooty() + 50))
         self.btn_frame = ttk.Frame(self)
         self.table_frame = ttk.Frame(self)
-        self.search_entry = ttk.Entry(self, justify='left', width=29, font=('Arial', 9))
+        self.entry_value = tk.StringVar()
+        # self.entry_value.trace_add("write", self.update_table())
+        self.search_entry = ttk.Entry(self, justify='left', width=29, font=('Arial', 9), textvariable=self.entry_value)
         self.table = CheckboxTreeview(self.table_frame, show='tree', height=8)
+        self.table.bind('<Button-1>', self.update_table)
         self.table.style = ttk.Style()
         self.table.style.configure('Treeview', font=('Arial', 10), rowheight=25)
         self.scroll = ttk.Scrollbar(self.table_frame, command=self.table.yview)
         self.table.config(yscrollcommand=self.scroll.set)
-        self.ok_btn = ttk.Button(self.btn_frame, text='Ок', width=5)
+        self.ok_btn = ttk.Button(self.btn_frame, text='Ок', width=5, command=self.get_selected)
         self.cancel_btn = ttk.Button(self.btn_frame, text='Отмена')
         self.img = Img(file=r'icons/filter_remove.png')
         self.remove_filter_btn = ttk.Button(self, image=self.img,
                                             compound='image', takefocus=False)
         self.pack_items()
+        self.values = []
         self.fill_out_table()
+
+    def update_table(self, event):
+
+            # if self.table.tag_has("checked", selected_item):
+            #     self.table.check_all()
+            # else:
+            #     self.table.uncheck_all()
+        x, y, widget = event.x, event.y, event.widget
+        elem = widget.identify("element", x, y)
+
+
+
+    def get_selected(self):
+        pass
 
     def pack_items(self):
         """Размещает элементы внутри окна."""
@@ -180,23 +202,27 @@ class FilterWindow(tk.Toplevel):
         self.remove_filter_btn.grid(row=0, column=1)
         self.table_frame.grid(row=1, column=0, columnspan=2, pady=10)
 
+    def read_main_table(self):
+        col_index = self.main_table['columns'].index(self.colname)
+        for item in self.main_table.get_children():
+            value = self.main_table.item(item)['values'][col_index]
+            if value not in self.values:
+                self.values.append(value)
+        self.values.sort()
+
     def fill_out_table(self):
-        self.table.insert("", "end", "1", text="1")
-        self.table.insert("", "end", "2", text="2")
-        self.table.insert("", "end", "3", text="3")
-        self.table.insert("", "end", "4", text="4")
-        self.table.insert("", "end", "5", text="5")
-        self.table.insert("", "end", "6", text="1")
-        self.table.insert("", "end", "7", text="2")
-        self.table.insert("", "end", "8", text="3")
-        self.table.insert("", "end", "9", text="4")
-        self.table.insert("", "end", "10", text="5")
-        self.table.insert("", "end", "11", text="1")
-        self.table.insert("", "end", "12", text="2")
-        self.table.insert("", "end", "13", text="3")
-        self.table.insert("", "end", "14", text="4")
-        self.table.insert("", "end", "15", text="5")
-        self.table.insert("", "end", "16", text="1")
+        self.read_main_table()
+        self.table.insert("", "end", '0', text='(Выделить все)')
+        empty_val = False
+
+        for i, val in enumerate(self.values):
+            if val:
+                self.table.insert("", "end", i + 1, text=val)
+            else:
+                empty_val = True
+
+        if empty_val:
+            self.table.insert("", "end", text='Пустые')
 
 
 class EditWindow(tk.Toplevel):
@@ -349,13 +375,20 @@ class Table(ttk.Treeview):
             'route_icon': Img(file=r'icons/icons8-автобусный-маршрут-20.png')
 
         }
-        self.heading('date', text='Дата', anchor='w', image=self.icons['icon_time'], command=lambda: FilterWindow())
-        self.heading('route', text='Маршрут', anchor='w', image=self.icons['route_icon'])
-        self.heading('direction', text='Направление', anchor='w', image=self.icons['icon_direction'], )
-        self.heading("start", text="Начало", anchor='w', image=self.icons['icon_start'])
-        self.heading("finish", text="Конец", anchor='w', image=self.icons['icon_finish'])
-        self.heading("bus_numb", text="Гос.номер", anchor='w', image=self.icons['icon_bus'])
-        self.heading('screen', text="Скрин", anchor='w', image=self.icons['icon_screen'])
+        self.heading('date', text='Дата', anchor='w', image=self.icons['icon_time'],
+                     command=lambda: FilterWindow(self.app, 'date'))
+        self.heading('route', text='Маршрут', anchor='w', image=self.icons['route_icon'],
+                     command=lambda: FilterWindow(self.app, 'route'))
+        self.heading('direction', text='Направление', anchor='w', image=self.icons['icon_direction'],
+                     command=lambda: FilterWindow(self.app, 'direction'))
+        self.heading("start", text="Начало", anchor='w', image=self.icons['icon_start'],
+                     command=lambda: FilterWindow(self.app, 'start'))
+        self.heading("finish", text="Конец", anchor='w', image=self.icons['icon_finish'],
+                     command=lambda: FilterWindow(self.app, 'finish'))
+        self.heading("bus_numb", text="Гос.номер", anchor='w', image=self.icons['icon_bus'],
+                     command=lambda: FilterWindow(self.app, 'bus_numb'))
+        self.heading('screen', text="Скрин", anchor='w', image=self.icons['icon_screen'],
+                     command=lambda: FilterWindow(self.app, 'screen'))
         self.column("date", width=140, stretch=True)
         self.column("route", width=130, stretch=True)
         self.column("direction", stretch=True, width=155)

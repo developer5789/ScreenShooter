@@ -101,7 +101,6 @@ class AutoClicker:
             else:
                 time.sleep(0.5)
 
-
     def find_cords(self):
         log_entries = self.browser.get_log("performance")
         for entry in log_entries:
