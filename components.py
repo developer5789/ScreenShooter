@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import PhotoImage as Img
 from tkinter import ttk
 from tkinter import filedialog as fd
-from ttkwidgets import CheckboxTreeview
+from myclasses import MyCheckboxTreeview
 import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
@@ -150,9 +150,8 @@ class FilterWindow(tk.Toplevel):
         """
         super().__init__()
         self.app = app
-        self.main_table = app.table
         self.colname = colname
-        self.geometry("270x320")
+        self.geometry("295x320")
         self.title(f'Фильтрация')
         self.resizable(False, False)
         self.grab_set()
@@ -160,36 +159,43 @@ class FilterWindow(tk.Toplevel):
         self.btn_frame = ttk.Frame(self)
         self.table_frame = ttk.Frame(self)
         self.entry_value = tk.StringVar()
-        # self.entry_value.trace_add("write", self.update_table())
+        self.entry_value.trace_add("write", self.update_table)
         self.search_entry = ttk.Entry(self, justify='left', width=29, font=('Arial', 9), textvariable=self.entry_value)
-        self.table = CheckboxTreeview(self.table_frame, show='tree', height=8)
-        self.table.bind('<Button-1>', self.update_table)
-        self.table.style = ttk.Style()
-        self.table.style.configure('Treeview', font=('Arial', 10), rowheight=25)
+        self.table = MyCheckboxTreeview(self, self.table_frame, show='tree', height=8)
         self.scroll = ttk.Scrollbar(self.table_frame, command=self.table.yview)
         self.table.config(yscrollcommand=self.scroll.set)
-        self.ok_btn = ttk.Button(self.btn_frame, text='Ок', width=5, command=self.get_selected)
-        self.cancel_btn = ttk.Button(self.btn_frame, text='Отмена')
+        self.ok_btn = ttk.Button(self.btn_frame, text='Ок', width=5, command=self.apply)
+        self.cancel_btn = ttk.Button(self.btn_frame, text='Отмена', command=self.destroy)
         self.img = Img(file=r'icons/filter_remove.png')
         self.remove_filter_btn = ttk.Button(self, image=self.img,
-                                            compound='image', takefocus=False)
+                                            compound='image', takefocus=False, command=self.del_filter)
         self.pack_items()
-        self.values = []
-        self.fill_out_table()
-
-    def update_table(self, event):
-
-            # if self.table.tag_has("checked", selected_item):
-            #     self.table.check_all()
-            # else:
-            #     self.table.uncheck_all()
-        x, y, widget = event.x, event.y, event.widget
-        elem = widget.identify("element", x, y)
 
 
+    def del_filter(self):
+        if self.app.table.filters[self.colname]:
+            self.app.table.filters[self.colname] = None
+            for i in range(self.app.table.table_size):
+                self.app.table.move(str(i), '', i)
+        self.destroy()
+        self.app.table.heading(self.colname, image=self.app.table.icons[self.colname])
 
-    def get_selected(self):
-        pass
+    def apply(self):
+        filtered_values = self.table.get_checked_val()
+        previous_vals  = self.table.values
+        if filtered_values != previous_vals:
+            self.app.table.filters[self.colname] = filtered_values
+            self.app.table.filter_items(self.colname)
+
+        self.destroy()
+
+
+    def update_table(self, *args):
+        value = self.entry_value.get()
+        if value:
+            self.table.filter(value)
+        else:
+            self.table.return_initial_state()
 
     def pack_items(self):
         """Размещает элементы внутри окна."""
@@ -202,27 +208,6 @@ class FilterWindow(tk.Toplevel):
         self.remove_filter_btn.grid(row=0, column=1)
         self.table_frame.grid(row=1, column=0, columnspan=2, pady=10)
 
-    def read_main_table(self):
-        col_index = self.main_table['columns'].index(self.colname)
-        for item in self.main_table.get_children():
-            value = self.main_table.item(item)['values'][col_index]
-            if value not in self.values:
-                self.values.append(value)
-        self.values.sort()
-
-    def fill_out_table(self):
-        self.read_main_table()
-        self.table.insert("", "end", '0', text='(Выделить все)')
-        empty_val = False
-
-        for i, val in enumerate(self.values):
-            if val:
-                self.table.insert("", "end", i + 1, text=val)
-            else:
-                empty_val = True
-
-        if empty_val:
-            self.table.insert("", "end", text='Пустые')
 
 
 class EditWindow(tk.Toplevel):
@@ -366,28 +351,29 @@ class Table(ttk.Treeview):
         super().__init__(**kwargs)
         self.app = app
         self.icons = {
-            'icon_direction': Img(file=r'icons/icons8-направление-22.png'),
-            'icon_time': Img(file=r'icons/icons8-расписание-22.png'),
-            'icon_start': Img(file=r'icons/icons8-начало-22.png'),
-            'icon_finish': Img(file=r'icons/icons8-end-function-button-on-computer-keybord-layout-22.png'),
-            'icon_bus': Img(file=r'icons/icons8-автобус-22.png'),
-            'icon_screen': Img(file=r'icons/icons8-скриншот-22.png'),
-            'route_icon': Img(file=r'icons/icons8-автобусный-маршрут-20.png')
+            'direction': Img(file=r'icons/icons8-направление-22.png'),
+            'date': Img(file=r'icons/icons8-расписание-22.png'),
+            'start': Img(file=r'icons/icons8-начало-22.png'),
+            'finish': Img(file=r'icons/icons8-end-function-button-on-computer-keybord-layout-22.png'),
+            'bus_numb': Img(file=r'icons/icons8-автобус-22.png'),
+            'screen': Img(file=r'icons/icons8-скриншот-22.png'),
+            'route': Img(file=r'icons/icons8-автобусный-маршрут-20.png'),
+            'filter': Img(file=r'icons/icons8-фильтр-22.png')
 
         }
-        self.heading('date', text='Дата', anchor='w', image=self.icons['icon_time'],
+        self.heading('date', text='Дата', anchor='w', image=self.icons['date'],
                      command=lambda: FilterWindow(self.app, 'date'))
-        self.heading('route', text='Маршрут', anchor='w', image=self.icons['route_icon'],
+        self.heading('route', text='Маршрут', anchor='w', image=self.icons['route'],
                      command=lambda: FilterWindow(self.app, 'route'))
-        self.heading('direction', text='Направление', anchor='w', image=self.icons['icon_direction'],
+        self.heading('direction', text='Направление', anchor='w', image=self.icons['direction'],
                      command=lambda: FilterWindow(self.app, 'direction'))
-        self.heading("start", text="Начало", anchor='w', image=self.icons['icon_start'],
+        self.heading("start", text="Начало", anchor='w', image=self.icons['start'],
                      command=lambda: FilterWindow(self.app, 'start'))
-        self.heading("finish", text="Конец", anchor='w', image=self.icons['icon_finish'],
+        self.heading("finish", text="Конец", anchor='w', image=self.icons['finish'],
                      command=lambda: FilterWindow(self.app, 'finish'))
-        self.heading("bus_numb", text="Гос.номер", anchor='w', image=self.icons['icon_bus'],
+        self.heading("bus_numb", text="Гос.номер", anchor='w', image=self.icons['bus_numb'],
                      command=lambda: FilterWindow(self.app, 'bus_numb'))
-        self.heading('screen', text="Скрин", anchor='w', image=self.icons['icon_screen'],
+        self.heading('screen', text="Скрин", anchor='w', image=self.icons['screen'],
                      command=lambda: FilterWindow(self.app, 'screen'))
         self.column("date", width=140, stretch=True)
         self.column("route", width=130, stretch=True)
@@ -414,6 +400,7 @@ class Table(ttk.Treeview):
         self.edited_items = {}
         self.autoclicker = AutoClicker(profile_path)
         self.bus_numb = None
+        self.filters = {col: None for col in self['displaycolumns']}
 
     def run_autoclicker(self):
         """Запускается автоматический режим работы."""
@@ -463,6 +450,20 @@ class Table(ttk.Treeview):
                 Loger.enter_in_log(err)
 
         block_buttons(self.app.btn_panel.skip_btn)
+
+    def filter_items(self, col):
+        unnecessary_items = []
+        col_index = self['displaycolumns'].index(col)
+        values = self.filters[col]
+        for item in self.get_children():
+            val = self.item(item)['values'][col_index]
+            if str(val) not in values:
+                unnecessary_items.append(item)
+
+        self.detach(*unnecessary_items)
+        self.heading(col, image=self.icons['filter'])
+
+
 
     def select_item(self, event):
         self.current_item = int(self.selection()[0])

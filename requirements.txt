@@ -1,3 +1,5 @@
 PyAutoGUI==0.9.54
 openpyxl==3.1.2
 selenium==4.17.2
+future==0.18.3
+ttkwidgets==0.13.0

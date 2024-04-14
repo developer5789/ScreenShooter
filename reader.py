@@ -20,7 +20,7 @@ class Reader:
 
     def read(self):
         """Запускает чтение файла эксель с рейсами."""
-        self.wb = openpyxl.load_workbook(self.file_path)
+        self.wb = openpyxl.load_workbook(self.file_path, read_only=True)
         self.report_type = self.app.load_window.combobox_value.get()
         self.app.load_window.progress_text_var.set(f'Загрузка файла...')
         sheet = self.wb.active
@@ -60,7 +60,7 @@ class Reader:
         try:
             return int(value)
         except Exception:
-            return value
+            return value if value is not None else ''
 
     @staticmethod
     def get_bus_numb(bus_numb: str):
