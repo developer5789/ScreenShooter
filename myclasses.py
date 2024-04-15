@@ -44,6 +44,8 @@ class MyCheckboxTreeview(CheckboxTreeview):
         else:
             self.detach('0')
 
+    def all_checked(self):
+        return all([self.tag_has("checked", str(i)) for i in range(1, self.size + 1)])
 
     def read_main_table(self):
         col_index = self.main_table['columns'].index(self.colname)

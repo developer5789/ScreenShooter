@@ -168,27 +168,21 @@ class FilterWindow(tk.Toplevel):
         self.cancel_btn = ttk.Button(self.btn_frame, text='Отмена', command=self.destroy)
         self.img = Img(file=r'icons/filter_remove.png')
         self.remove_filter_btn = ttk.Button(self, image=self.img,
-                                            compound='image', takefocus=False, command=self.del_filter)
+                                            compound='image', takefocus=False, command=self.delete_filter)
         self.pack_items()
 
-
-    def del_filter(self):
-        if self.app.table.filters[self.colname]:
-            self.app.table.filters[self.colname] = None
-            for i in range(self.app.table.table_size):
-                self.app.table.move(str(i), '', i)
+    def delete_filter(self):
+        self.app.table.del_filter(self.colname)
         self.destroy()
-        self.app.table.heading(self.colname, image=self.app.table.icons[self.colname])
 
     def apply(self):
         filtered_values = self.table.get_checked_val()
-        previous_vals  = self.table.values
+        previous_vals = self.table.values
         if filtered_values != previous_vals:
             self.app.table.filters[self.colname] = filtered_values
-            self.app.table.filter_items(self.colname)
+            self.app.table.filter_items()
 
         self.destroy()
-
 
     def update_table(self, *args):
         value = self.entry_value.get()
@@ -451,19 +445,30 @@ class Table(ttk.Treeview):
 
         block_buttons(self.app.btn_panel.skip_btn)
 
-    def filter_items(self, col):
-        unnecessary_items = []
-        col_index = self['displaycolumns'].index(col)
-        values = self.filters[col]
-        for item in self.get_children():
-            val = self.item(item)['values'][col_index]
-            if str(val) not in values:
-                unnecessary_items.append(item)
+    def del_filter(self, colname):
+        if self.filters[colname]:
+            self.filters[colname] = None
+            self.filter_items()
+            self.heading(colname, image=self.app.table.icons[colname])
 
-        self.detach(*unnecessary_items)
-        self.heading(col, image=self.icons['filter'])
+    def match(self, filtered_cols, row_vals):
+        for col in filtered_cols:
+            col_indx = self['displaycolumns'].index(col)
+            col_mark_vals = self.filters[col]
+            value = str(row_vals[col_indx])
+            if value not in col_mark_vals:
+                return False
+        return True
 
-
+    def filter_items(self):
+        filtered_cols = [col for col in self.filters if self.filters[col]]
+        for i in range(self.table_size):
+            item_id = str(i)
+            values = self.item(item_id)['values']
+            if self.match(filtered_cols, values):
+                self.move(item_id, '', i)
+            else:
+                self.detach(item_id)
 
     def select_item(self, event):
         self.current_item = int(self.selection()[0])
