@@ -388,10 +388,11 @@ class Table(ttk.Treeview):
         self.heading_style = ttk.Style()
         self.heading_style.configure('Treeview.Heading', font=('Arial', 12))
         self.bind('<<TreeviewSelect>>', self.select_item)
-        self.bind('<Double-Button-1>', self.click_item)
+        self.bind('<Double-Button-1>', self.edit_cell)
         self.table_size = 0
         self.current_item = 0
         self.edited_items = {}
+        self.editing_cell = None
         self.autoclicker = AutoClicker(profile_path)
         self.bus_numb = None
         self.filters = {col: None for col in self['displaycolumns']}
@@ -444,6 +445,25 @@ class Table(ttk.Treeview):
                 Loger.enter_in_log(err)
 
         block_buttons(self.app.btn_panel.skip_btn)
+
+    def edit_cell(self, event):
+        col, selected_item = self.identify_column(event.x), self.focus()
+        text = self.item(selected_item)['values'][int(col[1:]) - 1]
+        cell_cords  = self.bbox(selected_item, col)
+        x, y = event.widget.winfo_x(), event.widget.winfo_y()
+        self.editing_cell = ttk.Entry(self.app,  font=('Arial', 13), background='#98FB98')
+        self.editing_cell.insert(0, text)
+        self.editing_cell.place(x=x + cell_cords[0],
+                    y=y + cell_cords[1],
+                    width=cell_cords[2],
+                    height=cell_cords[3])
+
+        self.editing_cell.focus()
+        self.editing_cell.bind('<FocusOut>', self.focus_out)
+
+    def focus_out(self, event):
+        self.editing_cell.unbind('<FocusOut>')
+        self.editing_cell.destroy()
 
     def del_filter(self, colname):
         if self.filters[colname]:
@@ -515,7 +535,7 @@ class Table(ttk.Treeview):
 
         os.remove(screen_path)
 
-    def click_item(self, event):
+    def click_item(self, event): # перевести на другой event
         try:
             values = self.item(str(self.current_item))['values']
             bus_numb = values[5]

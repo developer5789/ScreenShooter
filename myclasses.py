@@ -1,7 +1,7 @@
 from ttkwidgets import CheckboxTreeview
 from tkinter.ttk import Style
 
-class MyCheckboxTreeview(CheckboxTreeview):
+class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо доделать
     def __init__(self, filter_window, parent, **kwargs):
         super().__init__(parent, **kwargs)
         self.style = Style()
@@ -79,14 +79,23 @@ class MyCheckboxTreeview(CheckboxTreeview):
             self.delete('0')
             return
 
-        self.check_all()
-
-    def check_items(self):
-        values = self.main_table.filters(self.colname)
-        if values is not None:
-            self.check_all()
+        mark_values = self.main_table.filters[self.colname]
+        if mark_values is not None:
+            self.check_items(mark_values)
         else:
-            pass # надо дописать
+            self.check_all()
+
+    def check_items(self, values):
+        for item in self.get_children():
+            if item != '0':
+                val = self.item(item)['text'] if self.item(item)['text'] else ''
+                if val in values:
+                    self.change_state(item, 'checked')
+
+        if self.all_checked():
+            self.change_state('0', 'checked')
+        else:
+            self.change_state('0', 'tristate')
 
     def _box_click(self, event):
         x, y, widget = event.x, event.y, event.widget
