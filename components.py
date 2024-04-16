@@ -389,6 +389,8 @@ class Table(ttk.Treeview):
         self.heading_style.configure('Treeview.Heading', font=('Arial', 12))
         self.bind('<<TreeviewSelect>>', self.select_item)
         self.bind('<Double-Button-1>', self.edit_cell)
+        self.bind('<MouseWheel>', self.mouse_wheel)
+        self.bind()
         self.table_size = 0
         self.current_item = 0
         self.edited_items = {}
@@ -396,6 +398,10 @@ class Table(ttk.Treeview):
         self.autoclicker = AutoClicker(profile_path)
         self.bus_numb = None
         self.filters = {col: None for col in self['displaycolumns']}
+
+    def mouse_wheel(self, event):
+        x, y = self.editing_cell.winfo_rootx(), self.editing_cell.winfo_rooty()
+        self.editing_cell.place(x=x + 5, y=y+5)
 
     def run_autoclicker(self):
         """Запускается автоматический режим работы."""
@@ -457,7 +463,6 @@ class Table(ttk.Treeview):
                     y=y + cell_cords[1],
                     width=cell_cords[2],
                     height=cell_cords[3])
-
         self.editing_cell.focus()
         self.editing_cell.bind('<FocusOut>', self.focus_out)
 

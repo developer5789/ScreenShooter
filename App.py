@@ -16,12 +16,16 @@ class App(tk.Tk):
         self.table = Table(self, column=Table.columns, show='headings', padding=10,
                            displaycolumns=('date', "route", "direction", "start", 'finish', 'bus_numb', 'screen'))
         self.scroll = tk.Scrollbar(command=self.table.yview)
+        self.scroll.bind('<MouseWheel>', self.table.mouse_wheel)
+        self.scroll.bind('<ButtonPress>', self.table.mouse_wheel)
         self.table.config(yscrollcommand=self.scroll.set)
         self.btn_panel = ButtonPanel(self)
         self.bind('<<Updated>>', lambda event: app.load_window.update_progressbar(event))
         self.after(1000, self.show_load_window)
         self.protocol('WM_DELETE_WINDOW', self.finish)
         self.pack()
+
+
 
     def pack(self):
         """Размещение компонентов внутри главного окна."""
@@ -32,7 +36,7 @@ class App(tk.Tk):
         self.res_panel.progressbar.grid(row=1, column=0, columnspan=6, sticky='ew', pady=10)
         self.btn_panel.pack_buttons()
 
-        self.table.rowconfigure(0, pad=15)
+        self.table.rowconfigure(0)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(2, weight=1)
