@@ -9,13 +9,12 @@ import tkinter as tk
 from tkinter import PhotoImage as Img
 from tkinter import ttk
 from tkinter import filedialog as fd
-from myclasses import MyCheckboxTreeview
+from myclasses import MyCheckboxTreeview, TableEntry
 import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
 from loger import Loger
 from messages import show_inf, show_error
-
 
 def get_config():
     """Получаем найстроки пользователя из файла config.json"""
@@ -388,8 +387,7 @@ class Table(ttk.Treeview):
         self.heading_style = ttk.Style()
         self.heading_style.configure('Treeview.Heading', font=('Arial', 12))
         self.bind('<<TreeviewSelect>>', self.select_item)
-        self.bind('<Double-Button-1>', self.edit_cell)
-        self.bind('<MouseWheel>', self.mouse_wheel)
+        self.bind('<Double-Button-1>', self.click_cell)
         self.bind()
         self.table_size = 0
         self.current_item = 0
@@ -399,9 +397,7 @@ class Table(ttk.Treeview):
         self.bus_numb = None
         self.filters = {col: None for col in self['displaycolumns']}
 
-    def mouse_wheel(self, event):
-        x, y = self.editing_cell.winfo_rootx(), self.editing_cell.winfo_rooty()
-        self.editing_cell.place(x=x + 5, y=y+5)
+
 
     def run_autoclicker(self):
         """Запускается автоматический режим работы."""
@@ -452,23 +448,14 @@ class Table(ttk.Treeview):
 
         block_buttons(self.app.btn_panel.skip_btn)
 
-    def edit_cell(self, event):
+    def click_cell(self, event):
         col, selected_item = self.identify_column(event.x), self.focus()
         text = self.item(selected_item)['values'][int(col[1:]) - 1]
-        cell_cords  = self.bbox(selected_item, col)
-        x, y = event.widget.winfo_x(), event.widget.winfo_y()
-        self.editing_cell = ttk.Entry(self.app,  font=('Arial', 13), background='#98FB98')
+        box  = list(self.bbox(selected_item, col))
+        box[0], box[1] = box[0] + event.widget.winfo_x(), box[1] + event.widget.winfo_y()
+        self.editing_cell = TableEntry(selected_item, col, box, self.app,
+                                       font=('Arial', 13), background='#98FB98')
         self.editing_cell.insert(0, text)
-        self.editing_cell.place(x=x + cell_cords[0],
-                    y=y + cell_cords[1],
-                    width=cell_cords[2],
-                    height=cell_cords[3])
-        self.editing_cell.focus()
-        self.editing_cell.bind('<FocusOut>', self.focus_out)
-
-    def focus_out(self, event):
-        self.editing_cell.unbind('<FocusOut>')
-        self.editing_cell.destroy()
 
     def del_filter(self, colname):
         if self.filters[colname]:

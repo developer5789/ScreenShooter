@@ -16,8 +16,6 @@ class App(tk.Tk):
         self.table = Table(self, column=Table.columns, show='headings', padding=10,
                            displaycolumns=('date', "route", "direction", "start", 'finish', 'bus_numb', 'screen'))
         self.scroll = tk.Scrollbar(command=self.table.yview)
-        self.scroll.bind('<MouseWheel>', self.table.mouse_wheel)
-        self.scroll.bind('<ButtonPress>', self.table.mouse_wheel)
         self.table.config(yscrollcommand=self.scroll.set)
         self.btn_panel = ButtonPanel(self)
         self.bind('<<Updated>>', lambda event: app.load_window.update_progressbar(event))

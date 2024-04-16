@@ -1,5 +1,5 @@
 from ttkwidgets import CheckboxTreeview
-from tkinter.ttk import Style
+from tkinter.ttk import Style, Entry
 
 class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо доделать
     def __init__(self, filter_window, parent, **kwargs):
@@ -121,9 +121,35 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
                     self.change_state(item, "unchecked")
 
 
+class TableEntry(Entry):
+    def __init__(self, item, col, box: list, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.item = item
+        self.col = int(col[1:]) - 1
+        self.table = args[0].table
+        self.app = args[0]
+        self.bind('<Return>', self.enter)
+        self.bind('<FocusOut>', self.enter)
+        self.table.bind('<MouseWheel>', self.del_entry)
+        self.app.table.bind('<Configure>', self.del_entry)
+        self.app.scroll.bind('<MouseWheel>', self.del_entry)
+        self.app.scroll.bind('<ButtonPress>', self.del_entry)
+        self.place(x=box[0],
+                   y=box[1],
+                   width=box[2],
+                   height=box[3])
+        self.focus()
 
+    def del_entry(self, event=None):
+        self.table.unbind('<MouseWheel>')
+        self.app.table.unbind('<Configure>')
+        self.app.scroll.unbind('<MouseWheel>')
+        self.app.scroll.unbind('<ButtonPress>')
+        self.destroy()
 
-
-
+    def enter(self, event):
+        value = self.get()
+        self.table.set(self.item, self.col, value)
+        self.destroy()
 
 
