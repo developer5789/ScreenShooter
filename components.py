@@ -16,6 +16,7 @@ from selenium.common.exceptions import NoSuchWindowException
 from loger import Loger
 from messages import show_inf, show_error
 
+
 def get_config():
     """Получаем найстроки пользователя из файла config.json"""
     global config, x, y, width, height, profile_path, timeout
@@ -200,138 +201,6 @@ class FilterWindow(tk.Toplevel):
         self.btn_frame.grid(row=2, column=0, pady=10, columnspan=2, sticky='nswe')
         self.remove_filter_btn.grid(row=0, column=1)
         self.table_frame.grid(row=1, column=0, columnspan=2, pady=10)
-
-
-
-class EditWindow(tk.Toplevel):
-    """Класс описывает окно редактирования строк таблицы."""
-
-    def __init__(self, app, values: list):
-        """Инициализация элементов окна,аттрибутов, настройка параметров
-
-        Аргументы:
-            values(list): список из значений ячеек строки таблицы.
-            app(App): главное окно приложения.
-
-        """
-        super().__init__()
-        self.app = app
-        self.values = values
-        self.geometry("330x450")
-        self.title('Редактировать')
-        self.resizable(False, False)
-        self.grab_set()
-        self.geometry("+{}+{}".format(self.app.winfo_rootx() + 50, self.app.winfo_rooty() + 50))
-        self.date_frame = ttk.Frame(self)
-        self.date_label = ttk.Label(self.date_frame, text="Дата:")
-        self.date_entry = tk.Entry(self.date_frame, justify='left', width=35)
-        self.route_frame = ttk.Frame(self, padding=3)
-        self.route_label = tk.Label(self.route_frame, text="Маршрут:")
-        self.route_entry = tk.Entry(self.route_frame, width=35)
-        self.direction_frame = ttk.Frame(self, padding=3)
-        self.direction_label = tk.Label(self.direction_frame, text="Направление:")
-        self.direction_entry = tk.Entry(self.direction_frame, width=35)
-        self.start_frame = ttk.Frame(self, padding=3)
-        self.start_label = tk.Label(self.start_frame, text="Время начала рейса:")
-        self.start_entry = tk.Entry(self.start_frame, width=35)
-        self.end_frame = ttk.Frame(self, padding=3)
-        self.end_label = tk.Label(self.end_frame, text="Время окончания рейса:")
-        self.end_entry = tk.Entry(self.end_frame, width=35)
-        self.bus_numb_frame = ttk.Frame(self, padding=3)
-        self.bus_numb_label = tk.Label(self.bus_numb_frame, text="Гос.номер:")
-        self.bus_numb_entry = tk.Entry(self.bus_numb_frame, width=35)
-        self.screen_frame = ttk.Frame(self, padding=3)
-        self.screen_label = tk.Label(self.screen_frame, text="Скрин:")
-        self.screen_entry = tk.Entry(self.screen_frame, width=35)
-        self.btn_frame = ttk.Frame(self, padding=3)
-        self.btn_edit = ttk.Button(self.btn_frame, text='Редактировать', command=self.edit)
-        self.fields = [self.date_entry, self.route_entry, self.direction_entry, self.start_entry,
-                       self.end_entry, self.bus_numb_entry, self.screen_entry]
-        self.pack_items()
-        self.fill_out_fields()
-        self.protocol('WM_DELETE_WINDOW', self.destroy)
-
-    def pack_items(self):
-        """Размещает элементы внутри окна."""
-        self.date_frame.grid(row=0, column=0, padx=20)
-        self.route_frame.grid(row=1, column=0, padx=20)
-        self.direction_frame.grid(row=2, column=0, padx=20)
-        self.start_frame.grid(row=3, column=0, padx=20)
-        self.end_frame.grid(row=4, column=0, padx=20)
-        self.bus_numb_frame.grid(row=5, column=0, padx=20)
-        self.screen_frame.grid(row=6, column=0, padx=20)
-        self.btn_frame.grid(row=7, column=0, pady=20, sticky='nswe', )
-
-        self.date_label.pack(anchor='w')
-        self.date_entry.pack()
-        self.route_label.pack(anchor='w')
-        self.route_entry.pack()
-        self.direction_label.pack(anchor='w')
-        self.direction_entry.pack()
-        self.start_label.pack(anchor='w')
-        self.start_entry.pack()
-        self.end_label.pack(anchor='w')
-        self.end_entry.pack()
-        self.bus_numb_label.pack(anchor='w')
-        self.bus_numb_entry.pack()
-        self.screen_label.pack(anchor='w')
-        self.screen_entry.pack()
-        self.btn_edit.pack(side=tk.RIGHT, padx=15)
-
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=1)
-        self.rowconfigure(3, weight=1)
-        self.rowconfigure(4, weight=1)
-        self.rowconfigure(5, weight=1)
-        self.rowconfigure(6, weight=1)
-        self.rowconfigure(7, weight=1)
-        self.columnconfigure(0, weight=1)
-
-    def fill_out_fields(self):
-        """Заполняет поля окна значениями из self.values."""
-        for i, field in enumerate(self.fields):
-            field.insert(0, str(self.values[i]))
-
-    def get_data(self):
-        """Возвращает список из значений полей окна."""
-        res = []
-        for field in self.fields:
-            value = field.get()
-            try:
-                value = int(value)
-            except ValueError:
-                pass
-            res.append(value)
-        return res
-
-    def edit(self):
-        """Заносит новые значения в таблицу."""
-        item_id = str(self.app.table.current_item)
-        old_values = self.app.table.item(str(self.app.table.current_item))['values']
-        edited_values = self.get_data()
-        if old_values[:7] != edited_values:
-            for i, value in enumerate(edited_values):
-                self.app.table.set(str(self.app.table.current_item), i, value)
-            self.change_counter(old_values, edited_values)
-            if item_id not in self.app.table.edited_items:
-                self.app.table.edited_items[item_id] = {
-                    'old_values': old_values,
-                }
-        self.destroy()
-
-    def change_counter(self, old_values, edited_values):
-        """Меняет счетчик разобранных рейсов
-
-        Аргументы:
-            old_values(list): старые значения ячеек строки
-            edited_values(list): значения ячеек строки после редактирования
-        """
-        if not old_values[:7][-1] and str(edited_values[-1]).strip():
-            self.app.res_panel.add_route()
-        if old_values[:7][-1] and not str(edited_values[-1]).strip():
-            self.app.res_panel.subtract_route()
-
 
 class Table(ttk.Treeview):
     """Класс описывает таблицу с информацией о рейсах"""

@@ -24,7 +24,6 @@ class App(tk.Tk):
         self.pack()
 
 
-
     def pack(self):
         """Размещение компонентов внутри главного окна."""
         self.table.grid(row=2, column=2, columnspan=4, sticky='NSEW')
