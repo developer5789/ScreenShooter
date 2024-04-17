@@ -19,47 +19,47 @@ class ImageEditor:
         self.images = os.listdir('скрины/Комиссия/Декабрь_80')
         self.current_img = 0
         # кнопки
-        open_icon = ImageTk.PhotoImage(Image.open("buttons/open.png"))
+        open_icon = ImageTk.PhotoImage(Image.open("icons/open.png"))
         self.open_button = Button(self.window, image=open_icon, command=self.open_image, bd=0)
         self.open_button.image = open_icon
         self.open_button.pack(side=LEFT, padx=10, pady=5)
 
-        undo_icon = ImageTk.PhotoImage(Image.open("buttons/undo.png"))
+        undo_icon = ImageTk.PhotoImage(Image.open("icons/undo.png"))
         self.undo_button = Button(self.window, image=undo_icon, command=self.undo, bd=0)
         self.undo_button.image = undo_icon
         self.undo_button.pack(side=LEFT, padx=10, pady=5)
 
-        redo_icon = ImageTk.PhotoImage(Image.open("buttons/redo.png"))
+        redo_icon = ImageTk.PhotoImage(Image.open("icons/redo.png"))
         self.redo_button = Button(self.window, image=redo_icon, command=self.next_image, bd=0)
         self.redo_button.image = redo_icon
         self.redo_button.pack(side=LEFT, padx=10, pady=5)
 
-        save_icon = ImageTk.PhotoImage(Image.open("buttons/save.png"))
+        save_icon = ImageTk.PhotoImage(Image.open("icons/save.png"))
         self.save_button = Button(self.window, image=save_icon, command=self.save_image, bd=0)
         self.save_button.image = save_icon
         self.save_button.pack(side=LEFT, padx=10, pady=5)
 
-        resize_icon = ImageTk.PhotoImage(Image.open("buttons/resize.png"))
+        resize_icon = ImageTk.PhotoImage(Image.open("icons/resize.png"))
         self.resize_button = Button(self.window, image=resize_icon, command=self.resize_image, bd=0)
         self.resize_button.image = resize_icon
         self.resize_button.pack(side=LEFT, padx=10, pady=5)
 
-        rotate_icon = ImageTk.PhotoImage(Image.open("buttons/rotate.png"))
+        rotate_icon = ImageTk.PhotoImage(Image.open("icons/rotate.png"))
         self.rotate_button = Button(self.window, image=rotate_icon, command=self.rotate_image, bd=0)
         self.rotate_button.image = rotate_icon
         self.rotate_button.pack(side=LEFT, padx=10, pady=5)
 
-        flip_icon = ImageTk.PhotoImage(Image.open("buttons/flip.png"))
+        flip_icon = ImageTk.PhotoImage(Image.open("icons/flip.png"))
         self.flip_button = Button(self.window, image=flip_icon, command=self.flip_image, bd=0)
         self.flip_button.image = flip_icon
         self.flip_button.pack(side=LEFT, padx=10, pady=5)
 
-        crop_icon = ImageTk.PhotoImage(Image.open("buttons/crop.png"))
+        crop_icon = ImageTk.PhotoImage(Image.open("icons/crop.png"))
         self.crop_button = Button(self.window, image=crop_icon, command=self.crop_image, bd=0)
         self.crop_button.image = crop_icon
         self.crop_button.pack(side=LEFT, padx=10, pady=5)
 
-        add_text_icon = ImageTk.PhotoImage(Image.open("buttons/add_text.png"))
+        add_text_icon = ImageTk.PhotoImage(Image.open("icons/add_text.png"))
         self.add_text_button = Button(self.window, image=add_text_icon, command=self.add_text, bd=0)
         self.add_text_button.image = add_text_icon
         self.add_text_button.pack(side=LEFT, padx=10, pady=5)
