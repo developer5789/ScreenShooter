@@ -15,7 +15,7 @@ from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
 from loger import Loger
 from messages import show_inf, show_error
-
+from image_editor import ImageEditor
 
 def get_config():
     """Получаем найстроки пользователя из файла config.json"""
@@ -265,7 +265,6 @@ class Table(ttk.Treeview):
         self.autoclicker = AutoClicker(profile_path)
         self.bus_numb = None
         self.filters = {col: None for col in self['displaycolumns']}
-
 
 
     def run_autoclicker(self):
@@ -921,7 +920,7 @@ class ButtonPanel:
                                    command=lambda: EditWindow(self.root, self.root.table.get_values())
                                    )
         self.show_btn = ttk.Button(self.btn_frame, image=self.icons['show_icon'], compound='image',
-                                   takefocus=False, command=self.root.table.show_screen, state='disabled',
+                                   takefocus=False, command=lambda: ImageEditor(self.root), state='disabled',
                                    )
         self.chrome_btn = ttk.Button(self.btn_frame, image=self.icons['chrome_icon'],
                                      compound='image', takefocus=False, state='disabled',
