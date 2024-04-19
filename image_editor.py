@@ -1,6 +1,7 @@
 from tkinter import ttk
 from tkinter import *
 from PIL import Image, ImageTk
+from messages import last_item_message
 import os
 
 
@@ -30,7 +31,7 @@ class ImageEditor(Toplevel):
         self.next_btn = ttk.Button(self.btn_frame, image=self.icons['next'], command=self.next_image,
                                   compound='image', takefocus=False)
 
-        self.image_file = None
+        self.image_file = self.table.item(self.current_item)['values'][7]
         self.image = None
         self.image_tk = None
         self.images = os.listdir('скрины/Комиссия/Декабрь_80')
@@ -39,7 +40,7 @@ class ImageEditor(Toplevel):
         self.bus_numb_value = StringVar()
         self.route_value = StringVar()
         self.pack_items()
-        self.open_image()
+        self.open_image(self.image_file)
 
     def pack_items(self):
         label_style = ttk.Style()
@@ -86,22 +87,32 @@ class ImageEditor(Toplevel):
         self.canvas.grid(row=1, column=0, pady=10)
         self.btn_frame.grid(row=2, column=0)
 
+    @staticmethod
+    def find_image(func):
+        def wrapper(*args):
+            self = args[0]
+            switch_func = func(*args)
+            item = self.current_item
+            while item:
+                item = switch_func(item)
+                if item:
+                    filename = self.table.item(item)['values'][7]
+                    if filename:
+                        self.current_item = item
+                        self.open_image(filename)
+                        return
+            last_item_message(self)
+        return wrapper
 
+    @find_image
     def next_image(self):
-        next_item = self.table.next(self.current_item)
-        if next_item:
-            self.current_item = next_item
-            self.open_image()
+        return self.table.next
 
+    @find_image
     def previous_image(self):
-        previous_item = self.table.prev(self.current_item)
-        if previous_item:
-            self.current_item = previous_item
-            self.open_image()
+        return self.table.prev
 
-    def open_image(self):
-        # открытие изображения для редактирования
-        filename = self.table.item(self.current_item)['values'][7]
+    def open_image(self, filename):
         if filename:
             self.image_file = filename
             image = Image.open(filename)
@@ -119,5 +130,6 @@ class ImageEditor(Toplevel):
         self.start_value.set(datetime_start)
         self.finish_value.set(datetime_finish)
         self.bus_numb_value.set(bus_numb)
+
 
 

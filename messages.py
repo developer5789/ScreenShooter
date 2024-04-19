@@ -4,6 +4,10 @@ def show_error(message):
     messagebox.showerror('Ошибка', message)
 
 
+def last_item_message(parent):
+    messagebox.showinfo('Уведомление', 'Вы дошли до крайнего скриншота в таблице!', parent=parent)
+
+
 def show_inf():
     messagebox.showinfo('Уведомление', 'Ура!Разбор рейсов закончен!')
 

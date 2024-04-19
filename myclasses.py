@@ -22,12 +22,10 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
                 res.append(val) if val != 'Пустые' else res.append('')
         return res
 
-
     def return_initial_state(self):
         if self.size != 0:
             for i in range(self.size + 1):
                 self.move(str(i), '', i)
-
 
     def filter(self, value):
         matching_items = ['0']
@@ -62,7 +60,6 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
         if empty_val:
             self.values.append('')
 
-
     def fill_out_table(self):
         self.read_main_table()
         self.insert("", "end", '0', text='(Выделить все)')
@@ -72,7 +69,6 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
                 self.insert("", "end", i + 1, text=val)
             else:
                 self.insert("", 'end', i + 1, text='Пустые')
-
 
         self.size = len(self.get_children()) - 1
         if not self.size:

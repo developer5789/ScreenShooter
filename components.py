@@ -319,7 +319,7 @@ class Table(ttk.Treeview):
     def click_cell(self, event):
         col, selected_item = self.identify_column(event.x), self.focus()
         text = self.item(selected_item)['values'][int(col[1:]) - 1]
-        box  = list(self.bbox(selected_item, col))
+        box = list(self.bbox(selected_item, col))
         box[0], box[1] = box[0] + event.widget.winfo_x(), box[1] + event.widget.winfo_y()
         self.editing_cell = TableEntry(selected_item, col, box, self.app,
                                        font=('Arial', 13), background='#98FB98')
