@@ -4,6 +4,7 @@ from tkinter.ttk import Style, Entry
 class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо доделать
     def __init__(self, filter_window, parent, **kwargs):
         super().__init__(parent, **kwargs)
+        self.window = filter_window
         self.style = Style()
         self.style.configure('Checkbox.Treeview', font=('Arial', 10), rowheight=25)
         self.bind("<Button-1>", self._box_click)
@@ -13,6 +14,14 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
         self.size = 0
         self.empty_val = False
         self.fill_out_table()
+
+    def overwrite_table(self):
+        self.values = []
+        self.delete(*self.get_children())
+        self.fill_out_table()
+
+    def set_btn_state(self):
+        self.window.ok_btn['state'] = 'disabled' if not self.any_checked() else 'normal'
 
     def get_checked_val(self):
         res = []
@@ -43,7 +52,10 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
             self.detach('0')
 
     def all_checked(self):
-        return all([self.tag_has("checked", str(i)) for i in range(1, self.size + 1)])
+        return all([self.tag_has("checked", i) for i in self.get_children()])
+
+    def any_checked(self):
+        return any([self.tag_has("checked", i) for i in self.get_children()])
 
     def read_main_table(self):
         col_index = self.main_table['columns'].index(self.colname)
@@ -75,23 +87,11 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
             self.delete('0')
             return
 
-        mark_values = self.main_table.filters[self.colname]
-        if mark_values is not None:
-            self.check_items(mark_values)
-        else:
-            self.check_all()
+        self.check_all()
 
-    def check_items(self, values):
-        for item in self.get_children():
-            if item != '0':
-                val = self.item(item)['text'] if self.item(item)['text'] else ''
-                if val in values:
-                    self.change_state(item, 'checked')
+    def filters_has(self):
+        return any(list(self.main_table.filters.values()))
 
-        if self.all_checked():
-            self.change_state('0', 'checked')
-        else:
-            self.change_state('0', 'tristate')
 
     def _box_click(self, event):
         x, y, widget = event.x, event.y, event.widget
@@ -115,6 +115,7 @@ class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо до
                 elif self.tag_has("checked", item) and numb_checked - 1 < self.size:
                     self.change_state('0', 'tristate')
                     self.change_state(item, "unchecked")
+            self.set_btn_state()
 
 
 class TableEntry(Entry):

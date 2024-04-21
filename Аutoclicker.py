@@ -118,19 +118,19 @@ class AutoClicker:
                             response = self.browser.execute_cdp_cmd('Network.getResponseBody', {'requestId': request_id})
                             response_body = json.loads(response.get('body', ''))
                             cords = list(response_body['result'].values())[0]
-                            return len(cords) > 30
+                            return len(cords) > 3
                         except exceptions.WebDriverException:
                             if err_counter < 3:
                                 err_counter += 1
                                 time.sleep(0.5)
                                 continue
                             break
-                    print(f'Ошибок {err_counter}')
+
 
     def focus_on_track(self, table): # надо доработать
-        previous_id = table.current_item - 1
-        previous_route = table.item(str(previous_id))['values'][1] if previous_id >= 0 else None
-        current_route = table.item(str(previous_id + 1))['values'][1]
+        previous_id = table.prev(table.current_item)
+        previous_route = table.item(previous_id)['values'][1] if previous_id  else None
+        current_route = table.item(table.current_item)['values'][1]
         if current_route != previous_route or previous_route is None:
             try:
                 self.browser.execute_script("""let points = $("#panel-1258-innerCt table");

@@ -1,8 +1,8 @@
 from tkinter import ttk
 from tkinter import *
 from PIL import Image, ImageTk
-from messages import last_item_message
-import os
+from messages import last_item_message, askyesnocancel
+
 
 
 class ImageEditor(Toplevel):
@@ -11,7 +11,6 @@ class ImageEditor(Toplevel):
         self.app = args[0]
         self.table = self.app.table
         self.current_item = str(self.table.current_item)
-        self.title("Режим просмотра скринов")
         self.label_style = ttk.Style()
         self.label_style.configure("My.TLabel",  # имя стиля
                                 font="helvetica 10",  # шрифт
@@ -20,27 +19,27 @@ class ImageEditor(Toplevel):
                     'del': PhotoImage(file='icons/icons8-отходы-50.png'),
                     'back': PhotoImage(file='icons/icons8-налево-50.png'),
                     'next': PhotoImage(file='icons/icons8-направо-50.png'),
+                    'no_screen': PhotoImage(file='icons/no_screen.png')
                       }
         self.main_frame = Frame(self)
         self.btn_frame = Frame(self)
-        self.canvas = Canvas(self, width=1560, height=800, bg="#F5F5F5")
+        self.canvas = Canvas(self, width=1560, height=850, bg="#F5F5F5")
         self.del_btn = ttk.Button(self.btn_frame, image=self.icons['del'],
-                                   compound='image', takefocus=False)
+                                   compound='image', takefocus=False, command=self.del_screen)
         self.back_btn = ttk.Button(self.btn_frame, image=self.icons['back'], command=self.previous_image,
                                   compound='image', takefocus=False)
         self.next_btn = ttk.Button(self.btn_frame, image=self.icons['next'], command=self.next_image,
                                   compound='image', takefocus=False)
 
-        self.image_file = self.table.item(self.current_item)['values'][7]
+        self.image_path = self.table.item(self.current_item)['values'][7]
         self.image = None
         self.image_tk = None
-        self.images = os.listdir('скрины/Комиссия/Декабрь_80')
         self.start_value = StringVar()
         self.finish_value = StringVar()
         self.bus_numb_value = StringVar()
         self.route_value = StringVar()
         self.pack_items()
-        self.open_image(self.image_file)
+        self.open_image(self.image_path)
 
     def pack_items(self):
         label_style = ttk.Style()
@@ -112,14 +111,17 @@ class ImageEditor(Toplevel):
     def previous_image(self):
         return self.table.prev
 
-    def open_image(self, filename):
-        if filename:
-            self.image_file = filename
-            image = Image.open(filename)
+    def open_image(self, filepath):
+        if filepath:
+            self.image_path = filepath
+            image = Image.open(filepath)
             self.image_tk = ImageTk.PhotoImage(image)
-            # self.canvas.configure(width=self.image.width, height=self.image.width)
+            img_name = filepath.split("\\")[-1]
+            self.title(f"Режим просмотра скринов: {img_name}")
             self.canvas.create_image(0, 0, anchor=NW, image=self.image_tk)
             self.set_values(self.current_item)
+
+
 
     def set_values(self, item_id):
         values = self.table.item(item_id)['values']
@@ -130,6 +132,19 @@ class ImageEditor(Toplevel):
         self.start_value.set(datetime_start)
         self.finish_value.set(datetime_finish)
         self.bus_numb_value.set(bus_numb)
+
+
+    def del_screen(self):
+        values = self.table.item(self.current_item)['values']
+        screen_path, root_dir = values[7], values[13]
+        if screen_path:
+            res = self.table.askdel(screen_path, root_dir, self, self.current_item)
+            if res is not None:
+                self.image_tk = self.icons['no_screen']
+                self.title(f"Режим просмотра скринов: скриншот не найден")
+                self.canvas.create_image(780, 425, image=self.image_tk)
+
+
 
 
 

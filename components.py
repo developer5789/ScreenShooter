@@ -14,7 +14,7 @@ import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
 from loger import Loger
-from messages import show_inf, show_error
+from messages import show_inf, show_error, askyesnocancel
 from image_editor import ImageEditor
 
 def get_config():
@@ -172,13 +172,16 @@ class FilterWindow(tk.Toplevel):
         self.pack_items()
 
     def delete_filter(self):
-        self.app.table.del_filter(self.colname)
-        self.destroy()
+        filter_vals = self.app.table.filters[self.colname]
+        if filter_vals:
+            self.app.table.del_filter(self.colname)
+            self.table.overwrite_table()
 
     def apply(self):
         filtered_values = self.table.get_checked_val()
         previous_vals = self.table.values
         if filtered_values != previous_vals:
+            self.set_filter_icon()
             self.app.table.filters[self.colname] = filtered_values
             self.app.table.filter_items()
 
@@ -190,6 +193,8 @@ class FilterWindow(tk.Toplevel):
             self.table.filter(value)
         else:
             self.table.return_initial_state()
+        self.table.set_btn_state()
+
 
     def pack_items(self):
         """Размещает элементы внутри окна."""
@@ -201,6 +206,11 @@ class FilterWindow(tk.Toplevel):
         self.btn_frame.grid(row=2, column=0, pady=10, columnspan=2, sticky='nswe')
         self.remove_filter_btn.grid(row=0, column=1)
         self.table_frame.grid(row=1, column=0, columnspan=2, pady=10)
+
+    def set_filter_icon(self):
+        if self.app.table.filters[self.colname] is None:
+            filter_icon = self.app.table.icons['filter']
+            self.app.table.heading(self.colname, image=filter_icon)
 
 class Table(ttk.Treeview):
     """Класс описывает таблицу с информацией о рейсах"""
@@ -248,7 +258,7 @@ class Table(ttk.Treeview):
         self.tag_configure('gray_colored', background='#D3D3D3')
         self.tag_configure('green_colored', background='#98FB98')
         self.tag_configure('white_colored', background='white')
-        self.tag_configure('blue_colored', background='#00BFFF')
+        self.tag_configure('orange_colored', background='#F0E68C')
         self.tag_configure('red_colored', background='#FFA07A')
         self.style = ttk.Style()
         self.style.configure('Treeview', font=('Arial', 13), rowheight=60, separator=100)
@@ -259,8 +269,7 @@ class Table(ttk.Treeview):
         self.bind('<Double-Button-1>', self.click_cell)
         self.bind()
         self.table_size = 0
-        self.current_item = 0
-        self.edited_items = {}
+        self.current_item = '0'
         self.editing_cell = None
         self.autoclicker = AutoClicker(profile_path)
         self.bus_numb = None
@@ -276,7 +285,7 @@ class Table(ttk.Treeview):
 
         while self.autoclicker.state:
             try:
-                values = self.item(str(self.current_item))['values']
+                values = self.item(self.current_item)['values']
                 bus_numb = values[5]
                 datetime_from = self.get_datetime_str(values[0], values[3])
                 datetime_to = self.get_datetime_str(values[0], values[4], start=False)
@@ -299,8 +308,6 @@ class Table(ttk.Treeview):
                 else:
                     break
 
-                if self.current_item == self.table_size - 1:
-                    break
 
             except NoSuchWindowException as err:
                 self.autoclicker.pause()
@@ -326,10 +333,9 @@ class Table(ttk.Treeview):
         self.editing_cell.insert(0, text)
 
     def del_filter(self, colname):
-        if self.filters[colname]:
-            self.filters[colname] = None
-            self.filter_items()
-            self.heading(colname, image=self.app.table.icons[colname])
+        self.filters[colname] = None
+        self.filter_items()
+        self.heading(colname, image=self.app.table.icons[colname])
 
     def match(self, filtered_cols, row_vals):
         for col in filtered_cols:
@@ -351,32 +357,35 @@ class Table(ttk.Treeview):
                 self.detach(item_id)
 
     def select_item(self, event):
-        self.current_item = int(self.selection()[0])
+        self.current_item = self.selection()[0]
         self.check()
 
     def next_item(self):
-        next_item = self.next(str(self.current_item))
+        next_item = self.next(self.current_item)
         if next_item:
             self.selection_set((next_item,))
+            self.yview_scroll(1, 'units')
 
-    def cancel(self):
-        """Отмена всех операций, сделанных со строкой таблицы:
-        удаление скриншота, значения ячеек возвращаются к исходным, удаление заливки
-        """
-        item_id = str(self.current_item)
+    def del_command(self):
+        values = self.item(self.current_item)['values']
+        screen_path, root_dir = values[7], values[13]
+        if screen_path:
+            ans = self.askdel(screen_path, root_dir, self.app, self.current_item)
+            self.next_item() if ans is not None else None
 
-        if item_id in self.edited_items:
-            values = self.item(item_id)['values']
-            screen_path, screen, root_dir = values[7], values[6], values[13]
-            if screen_path:
-                self.del_screen(screen_path, root_dir)
-            if item_id + 1 < self.table_size:
-                self.current_item += 1
-                self.color(-1)
-                self.check()
-                self.yview_scroll(1, 'units')
+    def askdel(self, screen_path, root_dir, parent, item):
+        ans = askyesnocancel(parent)
+        if ans:
+            self.del_screen(screen_path, root_dir, item)
+            self.set(item, 6, 0)
+            self.color('red_colored')
+        elif ans is not None:
+            self.del_screen(screen_path, root_dir, item)
+            self.set(self.current_item, 6, '')
+            self.color('white_colored')
+        return ans
 
-    def del_screen(self, screen_path: str, root_dir: str):
+    def del_screen(self, screen_path: str, root_dir: str, item: str):
         """Удаление скриншота
 
         Аргументы:
@@ -394,10 +403,12 @@ class Table(ttk.Treeview):
                 numb_dict['max_value'] -= 1
 
         os.remove(screen_path)
+        self.set(item, 7, '')
+
 
     def click_item(self, event): # перевести на другой event
         try:
-            values = self.item(str(self.current_item))['values']
+            values = self.item(self.current_item)['values']
             bus_numb = values[5]
             datetime_from = self.get_datetime_str(values[0], values[3])
             datetime_to = self.get_datetime_str(values[0], values[4], start=False)
@@ -415,7 +426,7 @@ class Table(ttk.Treeview):
             show_error('Упс! Возникла ошибка при построении трека!')
             Loger.enter_in_log(err)
 
-    def execute_command(self, values=None, action=None):
+    def execute_command(self, values=None, action=None): #надо посмотреть
         """Выполняет переданную команду
 
         Аргументы:
@@ -423,38 +434,26 @@ class Table(ttk.Treeview):
             action(str, None): номер исполняемой команды (1-скрин)
             """
         if values is None:
-            values = self.item(str(self.current_item))['values']
-        screen = values[7]
-        if action and screen:
-            screen_path = self.make_screenshot(values, True)
-            self.set(str(self.current_item), 6, action)
-            self.set(str(self.current_item), 7, screen_path)
-            self.down()
-        elif action and not screen:
+            values = self.item(self.current_item)['values']
+        screen = str(values[6])
+        if action:
             screen_path = self.make_screenshot(values)
-            self.append_to_edited(values)
-            self.set(str(self.current_item), 7, screen_path)
-            self.set(str(self.current_item), 6, action)
-            self.down()
-        elif not action and not screen:
-            self.set(str(self.current_item), 6, action)
-            self.append_to_edited(values)
-            self.down()
-        else:
-            pass
+            self.set(self.current_item, 6, action)
+            self.set(self.current_item, 7, screen_path)
+            self.color('green_colored')
 
-    def append_to_edited(self, values: list):
-        """При редактировании добавляет элемент таблицы в self.edited_items.
-        Сохраняются исходные значения ячеек строки таблицы.
-        """
-        if str(self.current_item) not in self.edited_items:
-            self.edited_items[str(self.current_item)] = {
-                'old_values': values,
-            }
+        else:
+            self.del_screen(values[7], values[13]) if values[7] else None
+            self.set(self.current_item, 6, action)
+            self.color('red_colored')
+
+        self.next_item()
+        if not screen:
+            self.app.res_panel.add_route()
 
     def check(self):
         """Проверка на наличие скрина."""
-        screen_path = self.item(str(self.current_item))['values'][7]
+        screen_path = self.item(self.current_item)['values'][7]
         if screen_path:
             self.app.btn_panel.show_btn['state'] = 'normal'
         else:
@@ -462,26 +461,14 @@ class Table(ttk.Treeview):
 
     def show_screen(self):
         """Открывает скрин текущей строки таблицы."""
-        screen_path = self.item(str(self.current_item))['values'][7]
+        screen_path = self.item(self.current_item)['values'][7]
         os.startfile(screen_path)
 
-    def color(self):
+    def color(self, colour):
         """Заливка после выполнения команды"""
 
-        if self.item(str(self.current_item))['values'][6]:
-            self.item(str(self.current_item), tags=('green_colored',))
-        else:
-            self.item(str(self.current_item), tags=('red_colored',))
+        self.item(self.current_item, tags=(colour,))
 
-    def down(self):
-        """Переключение на следующую строку таблицы после исполнения команды."""
-        if self.current_item + 1 < self.table_size:
-            self.color()
-            self.next_item()
-            self.yview_scroll(1, 'units')
-        else:
-            self.color()
-            self.check()
 
     def fill_out_table(self, rd):
         """Заполняет таблицу значениями из прочитанного документа excel
@@ -492,12 +479,15 @@ class Table(ttk.Treeview):
         counter = -1
         for position, flight, date in rd.get_route():
             counter += 1
-            route = flight['route']
+            item = str(counter)
+            route, screen, route_numb = flight['route'], flight['screen'], flight['route_numb']
             root_dir = self.get_root_dir(date, route)
             values = (date, route, flight['direction'], flight['start_time'],
-                      flight['finish_time'], flight['bus_numb'], '', '', position, 0,
-                      flight['row_numb'], 'white_colored', flight['route_numb'], root_dir)
-            self.insert('', 'end', values=values, iid=str(counter))
+                      flight['finish_time'], flight['bus_numb'], screen, '', position, 0,
+                      flight['row_numb'], 'white_colored', route_numb, root_dir)
+            self.insert('', 'end', values=values, iid=item)
+            self.find_screen(item, screen, root_dir, route_numb)
+
         self.table_size = counter + 1
         if self.table_size:
             self.selection_set(('0',))
@@ -507,9 +497,22 @@ class Table(ttk.Treeview):
 
     def get_values(self):
         """Возвращает список значений ячеек текущей строки"""
-        return self.item(str(self.current_item))['values']
+        return self.item(self.current_item)['values']
 
-    def make_screenshot(self, values: list, overwrite=False):
+    def find_screen(self, item, screen, root_dir, route_numb):
+        if screen == '1':
+            screen_path = rf'{root_dir}\{route_numb}.jpg'
+            if os.path.exists(screen_path):
+                self.set(item, 7, screen_path)
+                self.item(item, tags=('green_colored',))
+            else:
+                self.item(item, tags=('orange_colored',))
+
+        elif screen == '0':
+            self.item(item, tags=('red_colored',))
+
+
+    def make_screenshot(self, values: list):
         """Делает скрин трека
 
         Аргументы:
@@ -523,8 +526,6 @@ class Table(ttk.Treeview):
 
         screen = pg.screenshot(region=(x, y, width, height))
         screen.save(screen_path)
-        if not overwrite:
-            self.app.res_panel.add_route()
 
         return screen_path
 
@@ -913,7 +914,7 @@ class ButtonPanel:
                                    compound='image', takefocus=False, command=self.root.close_autoclicker,
                                    )
         self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
-                                     compound='image', takefocus=False, command=self.root.table.cancel,
+                                     compound='image', takefocus=False, command=self.root.table.del_command,
                                      )
         self.edit_btn = ttk.Button(self.btn_frame, image=self.icons['edit_icon'],
                                    compound='image', takefocus=False, state='disabled',

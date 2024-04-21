@@ -33,23 +33,25 @@ class Reader:
             if step_counter == 0:
                 self.app.event_generate('<<Updated>>', when='tail')
                 step_counter = 0
-            if type(row[2].value) == datetime.datetime and row[18].value is None:
-                self.total += 1
-                date = self.convert_date_to_str(row[2].value)
-                route = self.get_int(row[1].value)
-                bus_numb = self.get_bus_numb(row[11].value)
-                self.routes_dict[date][route][bus_numb].append(
-                    {
-                        'direction': self.get_int(row[3].value),
-                        'start_time': self.convert_time_to_str(row[7].value),
-                        'finish_time': self.convert_time_to_str(row[8].value),
-                        'screen': None,
-                        'row_numb': counter,
-                        'bus_numb': bus_numb,
-                        'route': route,
-                        'route_numb': row[0].value
-                    }
-                )
+            if type(row[2].value) == datetime.datetime:
+                screen =  self.get_screen_value(row[18].value)
+                if screen in ('', '1', '0'):
+                    self.total += 1
+                    date = self.convert_date_to_str(row[2].value)
+                    route = self.get_int(row[1].value)
+                    bus_numb = self.get_bus_numb(row[11].value)
+                    self.routes_dict[date][route][bus_numb].append(
+                        {
+                            'direction': self.get_int(row[3].value),
+                            'start_time': self.convert_time_to_str(row[7].value),
+                            'finish_time': self.convert_time_to_str(row[8].value),
+                            'screen': screen,
+                            'row_numb': counter,
+                            'bus_numb': bus_numb,
+                            'route': route,
+                            'route_numb': row[0].value
+                        }
+                    )
 
         self.app.load_window.progress_text_var.set(f'Файл {self.file_path} прочитан')
         self.app.load_window.progress_var.set(100)
@@ -106,3 +108,10 @@ class Reader:
                 for bus_numb in self.routes_dict[date][route]:
                     for position, dict in enumerate(self.routes_dict[date][route][bus_numb]):
                         yield position, dict, date
+
+    def get_screen_value(self, value):
+        if type(value) == int:
+            return str(value)
+        if not value:
+            return ''
+        return str(value)

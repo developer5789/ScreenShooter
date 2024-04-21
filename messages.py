@@ -15,3 +15,7 @@ def show_inf():
 def open_warning():
     messagebox.showwarning(title="Предупреждение", message="У вас открыт файл эксель с неучтенными рейсами."
                                                            "Для корректного завершения программы закройте его и нажмите 'Ок'")
+
+def askyesnocancel(parent):
+    return messagebox.askyesnocancel(title='Удаление скриншота', message="Скриншот будет удалён.\n(Да-0 в столбце 'скрин',"
+                                                                  "нет-пустое значение.)", parent=parent)
