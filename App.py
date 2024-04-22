@@ -23,7 +23,6 @@ class App(tk.Tk):
         self.protocol('WM_DELETE_WINDOW', self.finish)
         self.pack()
 
-
     def pack(self):
         """Размещение компонентов внутри главного окна."""
         self.table.grid(row=2, column=2, columnspan=4, sticky='NSEW')
@@ -82,8 +81,6 @@ class App(tk.Tk):
         try:
             self.rd.read()
             activate_buttons(self.btn_panel.start_btn)
-            self.res_panel.routes_counter.set(self.rd.total)
-            self.res_panel.remaining_counter.set(self.rd.total)
             self.make_dirs()
             if self.rd.report_type == 'НС':
                 self.table.get_paths()

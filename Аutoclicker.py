@@ -42,9 +42,8 @@ class AutoClicker:
             self.setInterface = 1
 
         if reset:
-            self.browser.execute_script("""Ext.getCmp('textfield-1123').setValue('q');
-                                            $("#button-1154-btnIconEl").click();""")
-            time.sleep(0.5)
+            self.browser.execute_script("""$("#button-1184-btnIconEl").click();""")
+            time.sleep(0.3)
 
         setval_call = f'setval("{bus_numb}", "{datetime_from}", "{datetime_to}");'
 
@@ -126,22 +125,19 @@ class AutoClicker:
                                 continue
                             break
 
-
     def focus_on_track(self, table): # надо доработать
-        previous_id = table.prev(table.current_item)
-        previous_route = table.item(previous_id)['values'][1] if previous_id  else None
         current_route = table.item(table.current_item)['values'][1]
-        if current_route != previous_route or previous_route is None:
+        if current_route != table.focused_route:
             try:
-                self.browser.execute_script("""let points = $("#panel-1258-innerCt table");
-                                            const m = (points.length - points.length  % 2) / 2;
-                                            points[m].click();
-                                            flag = document.querySelector('.ol-overlay-container');
-                                            if (flag){
-                                            flag.remove()
-                                            };
+                self.browser.execute_script("""
+                                            document.querySelector('#panel-1258-innerCt table').click();
+                                            let flags = document.querySelectorAll('.ol-overlay-container');
+                                            for (let i = 0; i < flags.length; i++) {
+                                              flags[i].remove();
+                                            }
                                             """)
                 time.sleep(2)
+                table.focused_route = current_route
 
             except Exception as err:
                 pass

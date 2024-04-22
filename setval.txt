@@ -11,16 +11,18 @@ function setval(number, datefrom, dateto){
 
             Ext.getCmp('container-1011').setHeight(0);
             Ext.getCmp('pagingtoolbar-1166').setHeight(0);
-            Ext.getCmp('tabpanel-1321').hide();
+            Ext.getCmp('tabpanel-1321').hide()
             Ext.getCmp('panel-1326').hide();
 
             Ext.getCmp('panel-1320-splitter').setHeight(0);
         }
-        Ext.getCmp('textfield-1123').setValue(number);
+        let numb_field = Ext.getCmp('textfield-1123')
         Ext.getCmp('datefield-1033').setValue(datefrom);
         Ext.getCmp('datefield-1034').setValue(dateto);
-        $("#button-1154-btnIconEl").click();
-
+        if (numb_field.value != number){
+            numb_field.setValue(number);
+            $("#button-1154-btnIconEl").click();
+            }
 
         const find_item = setInterval(() => {
                         if ($('#gridview-1120 table').length > 0){

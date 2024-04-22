@@ -2,6 +2,7 @@ from collections import defaultdict
 import openpyxl
 import datetime
 
+
 class Reader:
     """Класс читает эксель с рейсами и заполняет словарь self.routes_dict"""
     def __init__(self, app,  file_path=None):

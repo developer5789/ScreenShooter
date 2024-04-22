@@ -17,6 +17,7 @@ from loger import Loger
 from messages import show_inf, show_error, askyesnocancel
 from image_editor import ImageEditor
 
+
 def get_config():
     """Получаем найстроки пользователя из файла config.json"""
     global config, x, y, width, height, profile_path, timeout
@@ -195,7 +196,6 @@ class FilterWindow(tk.Toplevel):
             self.table.return_initial_state()
         self.table.set_btn_state()
 
-
     def pack_items(self):
         """Размещает элементы внутри окна."""
         self.search_entry.grid(row=0, column=0, sticky='nswe', pady=10, padx=10)
@@ -211,6 +211,7 @@ class FilterWindow(tk.Toplevel):
         if self.app.table.filters[self.colname] is None:
             filter_icon = self.app.table.icons['filter']
             self.app.table.heading(self.colname, image=filter_icon)
+
 
 class Table(ttk.Treeview):
     """Класс описывает таблицу с информацией о рейсах"""
@@ -274,7 +275,8 @@ class Table(ttk.Treeview):
         self.autoclicker = AutoClicker(profile_path)
         self.bus_numb = None
         self.filters = {col: None for col in self['displaycolumns']}
-
+        self.focused_route = None
+        self.empty_val = 0
 
     def run_autoclicker(self):
         """Запускается автоматический режим работы."""
@@ -292,7 +294,7 @@ class Table(ttk.Treeview):
                 reset = True if bus_numb == self.bus_numb else False
                 self.bus_numb = bus_numb
                 self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
-                time.sleep(2)
+                time.sleep(1.8)
                 track = self.autoclicker.check_track()
 
                 if self.autoclicker.skip:  # если скипнуть на последнем элементе?
@@ -307,7 +309,6 @@ class Table(ttk.Treeview):
                     continue
                 else:
                     break
-
 
             except NoSuchWindowException as err:
                 self.autoclicker.pause()
@@ -378,11 +379,11 @@ class Table(ttk.Treeview):
         if ans:
             self.del_screen(screen_path, root_dir, item)
             self.set(item, 6, 0)
-            self.color('red_colored')
+            self.color('red_colored', item)
         elif ans is not None:
             self.del_screen(screen_path, root_dir, item)
             self.set(self.current_item, 6, '')
-            self.color('white_colored')
+            self.color('white_colored', item)
         return ans
 
     def del_screen(self, screen_path: str, root_dir: str, item: str):
@@ -405,8 +406,7 @@ class Table(ttk.Treeview):
         os.remove(screen_path)
         self.set(item, 7, '')
 
-
-    def click_item(self, event): # перевести на другой event
+    def click_item(self): # перевести на другой event
         try:
             values = self.item(self.current_item)['values']
             bus_numb = values[5]
@@ -440,12 +440,12 @@ class Table(ttk.Treeview):
             screen_path = self.make_screenshot(values)
             self.set(self.current_item, 6, action)
             self.set(self.current_item, 7, screen_path)
-            self.color('green_colored')
+            self.color('green_colored', self.current_item)
 
         else:
-            self.del_screen(values[7], values[13]) if values[7] else None
+            self.del_screen(values[7], values[13], self.current_item) if values[7] else None
             self.set(self.current_item, 6, action)
-            self.color('red_colored')
+            self.color('red_colored', self.current_item)
 
         self.next_item()
         if not screen:
@@ -464,10 +464,10 @@ class Table(ttk.Treeview):
         screen_path = self.item(self.current_item)['values'][7]
         os.startfile(screen_path)
 
-    def color(self, colour):
+    def color(self, colour, item):
         """Заливка после выполнения команды"""
 
-        self.item(self.current_item, tags=(colour,))
+        self.item(item, tags=(colour,))
 
 
     def fill_out_table(self, rd):
@@ -487,6 +487,10 @@ class Table(ttk.Treeview):
                       flight['row_numb'], 'white_colored', route_numb, root_dir)
             self.insert('', 'end', values=values, iid=item)
             self.find_screen(item, screen, root_dir, route_numb)
+
+        self.app.res_panel.routes_counter.set(rd.total)
+        self.app.res_panel.remaining_counter.set(self.empty_val)
+        self.app.res_panel.completed_counter.set(rd.total - self.empty_val)
 
         self.table_size = counter + 1
         if self.table_size:
@@ -510,6 +514,9 @@ class Table(ttk.Treeview):
 
         elif screen == '0':
             self.item(item, tags=('red_colored',))
+
+        else:
+            self.empty_val += 1
 
 
     def make_screenshot(self, values: list):
@@ -865,7 +872,7 @@ class ButtonPanel:
             'play_icon': Img(file=r'icons/icons8-треугольник-50.png'),
             'pause_icon': Img(file=r'icons/icons8-пауза-50.png'),
             'stop_icon': Img(file=r'icons/icons8-стоп-50.png'),
-            'edit_icon': Img(file=r'icons/icons8-редактировать-50.png'),
+            'track_icon': Img(file=r'icons/icons8-трек-50.png'),
             'chrome_icon': Img(file=r'icons/icons8-google-chrome-50.png'),
             'download_icon': Img(file=r'icons/icons8-скачать-50.png'),
             'settings_icon': Img(file=r'icons/icons8-настройка-50.png'),
@@ -879,7 +886,7 @@ class ButtonPanel:
         self.pause_btn = None
         self.stop_btn = None
         self.cancel_btn = None
-        self.edit_btn = None
+        self.track_btn = None
         self.show_btn = None
         self.chrome_btn = None
         self.settings_btn = None
@@ -916,10 +923,10 @@ class ButtonPanel:
         self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
                                      compound='image', takefocus=False, command=self.root.table.del_command,
                                      )
-        self.edit_btn = ttk.Button(self.btn_frame, image=self.icons['edit_icon'],
-                                   compound='image', takefocus=False, state='disabled',
-                                   command=lambda: EditWindow(self.root, self.root.table.get_values())
-                                   )
+        self.track_btn = ttk.Button(self.btn_frame, image=self.icons['track_icon'],
+                                    compound='image', takefocus=False, state='disabled',
+                                    command=self.root.table.click_item
+                                    )
         self.show_btn = ttk.Button(self.btn_frame, image=self.icons['show_icon'], compound='image',
                                    takefocus=False, command=lambda: ImageEditor(self.root), state='disabled',
                                    )
@@ -931,7 +938,7 @@ class ButtonPanel:
                                        command=lambda: ConfigWindow(), takefocus=False
                                        )
         self.buttons.extend((self.start_btn, self.break_btn, self.screen_btn, self.cancel_btn,
-                             self.edit_btn, self.play_btn,
+                             self.track_btn, self.play_btn,
                              self.stop_btn, self.chrome_btn))
 
     def pack_buttons(self):
@@ -944,7 +951,7 @@ class ButtonPanel:
         self.screen_btn.grid(row=3, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
         self.play_btn.grid(row=0, column=0, padx=30, pady=10)
         self.cancel_btn.grid(row=3, column=4, pady=10, padx=20)
-        self.edit_btn.grid(row=5, column=4, pady=10, padx=30, sticky='nsew')
+        self.track_btn.grid(row=5, column=4, pady=10, padx=30, sticky='nsew')
         self.show_btn.grid(row=2, column=4, pady=10, padx=20)
         self.pause_btn.grid(row=0, column=1, padx=30, pady=10)
         self.stop_btn.grid(row=0, column=2, padx=30, pady=10)

@@ -1,8 +1,7 @@
 from tkinter import ttk
 from tkinter import *
 from PIL import Image, ImageTk
-from messages import last_item_message, askyesnocancel
-
+from messages import last_item_message
 
 
 class ImageEditor(Toplevel):
@@ -121,8 +120,6 @@ class ImageEditor(Toplevel):
             self.canvas.create_image(0, 0, anchor=NW, image=self.image_tk)
             self.set_values(self.current_item)
 
-
-
     def set_values(self, item_id):
         values = self.table.item(item_id)['values']
         date, route, start, finish, bus_numb = values[0:2] + values[3:6]
@@ -132,7 +129,6 @@ class ImageEditor(Toplevel):
         self.start_value.set(datetime_start)
         self.finish_value.set(datetime_finish)
         self.bus_numb_value.set(bus_numb)
-
 
     def del_screen(self):
         values = self.table.item(self.current_item)['values']
