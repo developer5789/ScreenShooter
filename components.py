@@ -488,9 +488,7 @@ class Table(ttk.Treeview):
             self.insert('', 'end', values=values, iid=item)
             self.find_screen(item, screen, root_dir, route_numb)
 
-        self.app.res_panel.routes_counter.set(rd.total)
-        self.app.res_panel.remaining_counter.set(self.empty_val)
-        self.app.res_panel.completed_counter.set(rd.total - self.empty_val)
+        self.app.res_panel.set_progress(rd.total, rd.total - self.empty_val, self.empty_val)
 
         self.table_size = counter + 1
         if self.table_size:
@@ -741,6 +739,7 @@ class ResultPanel:
         self.predict_counter = tk.StringVar(value='00:00:00')
         self.time_counter = 0
         self.state = 0
+        self.last_action = 0
 
     def prepare_panel(self):
         """Размещает элементы на панели."""
@@ -797,6 +796,13 @@ class ResultPanel:
         self.main_frame.grid(row=0, column=0, sticky='nsew')
         self.main_frame.rowconfigure(1, weight=1)
 
+    def set_progress(self, total, completed_items, remaining_items):
+        self.routes_counter.set(total)
+        self.remaining_counter.set(remaining_items)
+        self.completed_counter.set(completed_items)
+        progress_value = 100 * self.completed_counter.get() / self.routes_counter.get()
+        self.progress_var.set(int(progress_value))
+
     def add_route(self):
         """Увеличивает кол-во разобранных рейсов на единицу."""
         self.completed_counter.set(self.completed_counter.get() + 1)
@@ -828,6 +834,7 @@ class ResultPanel:
 
     def start(self):
         """Запускает работу счетчиков панели результатов."""
+        self.last_action = time.time()
         block_buttons(self.root.btn_panel.start_btn)
         activate_buttons(*self.root.btn_panel.buttons[1:])
         self.state = 1
@@ -842,12 +849,13 @@ class ResultPanel:
     def calc_speed(self):
         """Вычисляет скорость работы."""
         try:
-            past_minutes = self.time_counter / 60
-            speed = round(self.completed_counter.get() / past_minutes, 1)
+            action_time = time.time()
+            speed = round(60 / (action_time - self.last_action), 1)
             self.speed_counter.set(str(speed))
+            self.last_action = action_time
             return speed
         except ZeroDivisionError:
-            return 100.0
+            return 15
 
 
 class ButtonPanel:

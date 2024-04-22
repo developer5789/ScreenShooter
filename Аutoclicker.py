@@ -38,7 +38,9 @@ class AutoClicker:
 
         """
         if not self.setInterface:
-            self.browser.execute_script("Ext.getCmp('combobox-1032').setValue('1h')")
+            self.browser.execute_script("""Ext.getCmp('combobox-1032').setValue('1h');
+                                            Ext.getCmp('numberfield-1181').setValue('1');
+                                            $("#button-1177-btnIconEl").click()""")
             self.setInterface = 1
 
         if reset:
