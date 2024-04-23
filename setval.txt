@@ -19,17 +19,23 @@ function setval(number, datefrom, dateto){
         let numb_field = Ext.getCmp('textfield-1123')
         Ext.getCmp('datefield-1033').setValue(datefrom);
         Ext.getCmp('datefield-1034').setValue(dateto);
+
+        let interval = 1000;
         if (numb_field.value != number){
             numb_field.setValue(number);
             $("#button-1154-btnIconEl").click();
             }
+        else{
+            interval = 600;
+            $("#button-1184-btnIconEl").click();
+        }
 
         const find_item = setInterval(() => {
                         if ($('#gridview-1120 table').length > 0){
                             $('.x-grid-item:first-child .x-grid-cell:nth-child(2)').click();
                             clearInterval(find_item)
                                                         }
-                            }, 1000);
+                            }, interval);
 
     }
     else{

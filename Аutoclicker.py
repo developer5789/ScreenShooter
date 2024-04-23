@@ -26,7 +26,7 @@ class AutoClicker:
             return True
         return False
 
-    def __call__(self, bus_numb: str, datetime_from: str, datetime_to: str, reset: bool):
+    def __call__(self, bus_numb: str, datetime_from: str, datetime_to: str):
         """Строит трек в браузере, ставит на исполнение js-код
 
             Аргументы:
@@ -42,10 +42,6 @@ class AutoClicker:
                                             Ext.getCmp('numberfield-1181').setValue('1');
                                             $("#button-1177-btnIconEl").click()""")
             self.setInterface = 1
-
-        if reset:
-            self.browser.execute_script("""$("#button-1184-btnIconEl").click();""")
-            time.sleep(0.3)
 
         setval_call = f'setval("{bus_numb}", "{datetime_from}", "{datetime_to}");'
 
@@ -127,7 +123,7 @@ class AutoClicker:
                                 continue
                             break
 
-    def focus_on_track(self, table): # надо доработать
+    def focus_on_track(self, table):
         current_route = table.item(table.current_item)['values'][1]
         if current_route != table.focused_route:
             try:
@@ -144,3 +140,5 @@ class AutoClicker:
             except Exception as err:
                 pass
 
+    def reset(self):
+        self.browser.execute_script('$("#button-1155-btnIconEl").click();')

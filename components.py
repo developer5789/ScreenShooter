@@ -273,7 +273,6 @@ class Table(ttk.Treeview):
         self.current_item = '0'
         self.editing_cell = None
         self.autoclicker = AutoClicker(profile_path)
-        self.bus_numb = None
         self.filters = {col: None for col in self['displaycolumns']}
         self.focused_route = None
         self.empty_val = 0
@@ -291,13 +290,11 @@ class Table(ttk.Treeview):
                 bus_numb = values[5]
                 datetime_from = self.get_datetime_str(values[0], values[3])
                 datetime_to = self.get_datetime_str(values[0], values[4], start=False)
-                reset = True if bus_numb == self.bus_numb else False
-                self.bus_numb = bus_numb
-                self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
+                self.autoclicker(bus_numb, datetime_from, datetime_to)
                 time.sleep(1.8)
                 track = self.autoclicker.check_track()
 
-                if self.autoclicker.skip:  # если скипнуть на последнем элементе?
+                if self.autoclicker.skip:
                     self.autoclicker.skip = False
                     self.next_item()
                 elif self.autoclicker.state and track:
@@ -306,9 +303,12 @@ class Table(ttk.Treeview):
                 elif self.autoclicker.state and track is not None:
                     self.execute_command(values, 0)
                 elif self.autoclicker.state and track is None:
+                    self.autoclicker.reset()
                     continue
                 else:
                     break
+
+
 
             except NoSuchWindowException as err:
                 self.autoclicker.pause()
@@ -412,11 +412,7 @@ class Table(ttk.Treeview):
             bus_numb = values[5]
             datetime_from = self.get_datetime_str(values[0], values[3])
             datetime_to = self.get_datetime_str(values[0], values[4], start=False)
-            reset = True if bus_numb == self.bus_numb else False
-            self.autoclicker(bus_numb, datetime_from, datetime_to, reset)
-
-            if not reset:
-                self.bus_numb = bus_numb
+            self.autoclicker(bus_numb, datetime_from, datetime_to)
 
         except NoSuchWindowException as err:
             show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
