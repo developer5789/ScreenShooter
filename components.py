@@ -489,7 +489,11 @@ class Table(ttk.Treeview):
                       flight['finish_time'], flight['bus_numb'], screen, '', position, 0,
                       flight['row_numb'], 'white_colored', route_numb, root_dir)
             self.insert('', 'end', values=values, iid=item)
-            self.find_screen(item, screen, root_dir, route_numb)
+
+            if rd.report_type == 'Комиссия':
+                self.find_screen(item, screen, root_dir, route_numb)
+            else:
+                self.find_screen_in_json(rd, values, item)
 
         self.app.res_panel.set_progress(rd.total, rd.total - self.empty_val, self.empty_val)
 
@@ -519,6 +523,31 @@ class Table(ttk.Treeview):
 
         else:
             self.empty_val += 1
+
+    def find_screen_in_json(self, rd, values, item):
+        route_id = ';'.join(list(map(str, values[:6])))
+        screen = values[6]
+        if route_id in rd.json:
+            screen_path = rd.json[route_id]
+            exist_path = os.path.exists(screen_path)
+
+            if screen == '1' and exist_path:
+                self.set(item, 7, screen_path)
+                self.item(item, tags=('green_colored',))
+            elif screen == '1' and not exist_path:
+                self.item(item, tags=('orange_colored',))
+            elif screen == '0':
+                self.item(item, tags=('red_colored',))
+            else:
+                self.empty_val += 1
+
+        else:
+            if screen == '1':
+                self.item(item, tags=('orange_colored',))
+            elif screen == '0':
+                self.item(item, tags=('red_colored',))
+            else:
+                self.empty_val += 1
 
     def make_screenshot(self, values: list):
         """Делает скрин трека

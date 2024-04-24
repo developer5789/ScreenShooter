@@ -21,7 +21,7 @@ class Reader:
         self.wb = None
         self.total = 0
         self.report_type = None
-        self.json = None
+        self.json = {}
 
     def read(self):
         """Запускает чтение файла эксель с рейсами."""
