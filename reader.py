@@ -1,11 +1,14 @@
 from collections import defaultdict
 import openpyxl
 import datetime
+import os
+import json
 
 
 class Reader:
     """Класс читает эксель с рейсами и заполняет словарь self.routes_dict"""
-    def __init__(self, app,  file_path=None):
+
+    def __init__(self, app, file_path=None):
         """Инициализация аттрибутов
 
         Аргументы:
@@ -18,10 +21,11 @@ class Reader:
         self.wb = None
         self.total = 0
         self.report_type = None
+        self.json = None
 
     def read(self):
         """Запускает чтение файла эксель с рейсами."""
-        self.wb = openpyxl.load_workbook(self.file_path, read_only=True)
+        self.wb = openpyxl.load_workbook(self.file_path, keep_links=False, data_only=True)
         self.report_type = self.app.load_window.combobox_value.get()
         self.app.load_window.progress_text_var.set(f'Загрузка файла...')
         sheet = self.wb.active
@@ -35,7 +39,7 @@ class Reader:
                 self.app.event_generate('<<Updated>>', when='tail')
                 step_counter = 0
             if type(row[2].value) == datetime.datetime:
-                screen =  self.get_screen_value(row[18].value)
+                screen = self.get_screen_value(row[18].value)
                 if screen in ('', '1', '0'):
                     self.total += 1
                     date = self.convert_date_to_str(row[2].value)
@@ -55,8 +59,15 @@ class Reader:
                     )
 
         self.app.load_window.progress_text_var.set(f'Файл {self.file_path} прочитан')
+        if self.report_type == 'НС':
+            self.read_json()
         self.app.load_window.progress_var.set(100)
         self.app.load_window.ok_btn['state'] = 'normal'
+
+    def read_json(self):
+        if os.path.exists('НС.json'):
+            with open('НС.json') as f:
+                self.json = json.load(f)
 
     @staticmethod
     def get_int(value):

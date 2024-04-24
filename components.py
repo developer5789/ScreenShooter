@@ -14,7 +14,7 @@ import json
 from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
 from loger import Loger
-from messages import show_inf, show_error, askyesnocancel
+from messages import show_inf, show_error, askyesnocancel, last_item_message
 from image_editor import ImageEditor
 
 
@@ -296,29 +296,34 @@ class Table(ttk.Treeview):
 
                 if self.autoclicker.skip:
                     self.autoclicker.skip = False
-                    self.next_item()
                 elif self.autoclicker.state and track:
                     self.autoclicker.focus_on_track(self)
-                    self.execute_command(values, 1)
+                    self.execute_command(values, 1, False)
                 elif self.autoclicker.state and track is not None:
-                    self.execute_command(values, 0)
+                    self.execute_command(values, 0, False)
                 elif self.autoclicker.state and track is None:
                     self.autoclicker.reset()
                     continue
                 else:
                     break
 
-
+                if not self.next_item():
+                    last_item_message()
+                    activate_buttons(self.app.btn_panel.play_btn)
+                    block_buttons(self.app.btn_panel.pause_btn)
+                    break
 
             except NoSuchWindowException as err:
                 self.autoclicker.pause()
                 activate_buttons(self.app.btn_panel.play_btn)
+                block_buttons(self.app.btn_panel.pause_btn)
                 show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
                 Loger.enter_in_log(err)
 
             except Exception as err:
                 self.autoclicker.pause()
                 activate_buttons(self.app.btn_panel.play_btn)
+                block_buttons(self.app.btn_panel.pause_btn)
                 show_error('Возникла ошибка при построении трека!Попробуйте перезагрузить страницу!')
                 Loger.enter_in_log(err)
 
@@ -366,6 +371,7 @@ class Table(ttk.Treeview):
         if next_item:
             self.selection_set((next_item,))
             self.yview_scroll(1, 'units')
+        return next_item
 
     def del_command(self):
         values = self.item(self.current_item)['values']
@@ -422,7 +428,7 @@ class Table(ttk.Treeview):
             show_error('Упс! Возникла ошибка при построении трека!')
             Loger.enter_in_log(err)
 
-    def execute_command(self, values=None, action=None): #надо посмотреть
+    def execute_command(self, values=None, action=None, switch=True): #надо посмотреть
         """Выполняет переданную команду
 
         Аргументы:
@@ -443,7 +449,8 @@ class Table(ttk.Treeview):
             self.set(self.current_item, 6, action)
             self.color('red_colored', self.current_item)
 
-        self.next_item()
+        if switch:
+            self.next_item()
         if not screen:
             self.app.res_panel.add_route()
 
@@ -498,6 +505,7 @@ class Table(ttk.Treeview):
         return self.item(self.current_item)['values']
 
     def find_screen(self, item, screen, root_dir, route_numb):
+
         if screen == '1':
             screen_path = rf'{root_dir}\{route_numb}.jpg'
             if os.path.exists(screen_path):
@@ -511,7 +519,6 @@ class Table(ttk.Treeview):
 
         else:
             self.empty_val += 1
-
 
     def make_screenshot(self, values: list):
         """Делает скрин трека
@@ -529,7 +536,6 @@ class Table(ttk.Treeview):
         screen.save(screen_path)
 
         return screen_path
-
     def get_screen_path(self, values: list):
         """Возвращает путь до сделанного скриншота
 
@@ -847,6 +853,8 @@ class ResultPanel:
         try:
             action_time = time.time()
             speed = round(60 / (action_time - self.last_action), 1)
+            if not int(speed):
+                speed = 0.1
             self.speed_counter.set(str(speed))
             self.last_action = action_time
             return speed

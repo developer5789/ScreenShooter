@@ -128,7 +128,9 @@ class AutoClicker:
         if current_route != table.focused_route:
             try:
                 self.browser.execute_script("""
-                                            document.querySelector('#panel-1258-innerCt table').click();
+                                            let point = document.querySelector('#panel-1258-innerCt table');
+                                            point.click();
+                                            point.className = 'x-grid-item';
                                             let flags = document.querySelectorAll('.ol-overlay-container');
                                             for (let i = 0; i < flags.length; i++) {
                                               flags[i].remove();

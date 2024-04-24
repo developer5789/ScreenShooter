@@ -1,7 +1,7 @@
 from tkinter import ttk
 from tkinter import *
 from PIL import Image, ImageTk
-from messages import last_item_message
+from messages import last_screen_message
 
 
 class ImageEditor(Toplevel):
@@ -99,7 +99,7 @@ class ImageEditor(Toplevel):
                         self.current_item = item
                         self.open_image(filename)
                         return
-            last_item_message(self)
+            last_screen_message(self)
         return wrapper
 
     @find_image

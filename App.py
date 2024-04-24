@@ -87,6 +87,7 @@ class App(tk.Tk):
 
         except PermissionError as err:
             show_error("Открыт файл эксель с неучтенными рейсами. Закройте файл и перезапустите приложение!")
+
             Loger.enter_in_log(err)
 
         except Exception as err:
@@ -98,12 +99,12 @@ class App(tk.Tk):
         self.load_window = LoadWindow(self)
         self.load_window.pack_items(1)
 
-
     def make_dirs(self):
         if 'скрины' not in os.listdir():
             os.mkdir('скрины')
         if self.rd.report_type not in os.listdir('скрины'):
             os.mkdir(fr'скрины\{self.rd.report_type}')
+
 
 if __name__ == "__main__":
     app = App()
