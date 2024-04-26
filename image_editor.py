@@ -1,10 +1,10 @@
 from tkinter import ttk
-from tkinter import *
+import tkinter as tk
 from PIL import Image, ImageTk
 from messages import last_screen_message
 
 
-class ImageEditor(Toplevel):
+class ImageEditor(tk.Toplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.app = args[0]
@@ -15,14 +15,14 @@ class ImageEditor(Toplevel):
                                 font="helvetica 10",  # шрифт
 )
         self.icons = {
-                    'del': PhotoImage(file='icons/icons8-отходы-50.png'),
-                    'back': PhotoImage(file='icons/icons8-налево-50.png'),
-                    'next': PhotoImage(file='icons/icons8-направо-50.png'),
-                    'no_screen': PhotoImage(file='icons/no_screen.png')
+                    'del': tk.PhotoImage(file='icons/icons8-отходы-50.png'),
+                    'back': tk.PhotoImage(file='icons/icons8-налево-50.png'),
+                    'next': tk.PhotoImage(file='icons/icons8-направо-50.png'),
+                    'no_screen': tk.PhotoImage(file='icons/no_screen.png')
                       }
-        self.main_frame = Frame(self)
-        self.btn_frame = Frame(self)
-        self.canvas = Canvas(self, width=1560, height=850, bg="#F5F5F5")
+        self.main_frame = tk.Frame(self)
+        self.btn_frame = tk.Frame(self)
+        self.canvas = tk.Canvas(self, width=1560, height=850, bg="#F5F5F5")
         self.del_btn = ttk.Button(self.btn_frame, image=self.icons['del'],
                                    compound='image', takefocus=False, command=self.del_screen)
         self.back_btn = ttk.Button(self.btn_frame, image=self.icons['back'], command=self.previous_image,
@@ -33,10 +33,10 @@ class ImageEditor(Toplevel):
         self.image_path = self.table.item(self.current_item)['values'][7]
         self.image = None
         self.image_tk = None
-        self.start_value = StringVar()
-        self.finish_value = StringVar()
-        self.bus_numb_value = StringVar()
-        self.route_value = StringVar()
+        self.start_value = tk.StringVar()
+        self.finish_value = tk.StringVar()
+        self.bus_numb_value = tk.StringVar()
+        self.route_value = tk.StringVar()
         self.pack_items()
         self.open_image(self.image_path)
 
@@ -58,10 +58,14 @@ class ImageEditor(Toplevel):
         finish_label.pack()
         bus_numb_label.pack()
 
-        start_display = Label(start_frame, textvariable=self.start_value, font=("Arial", 14), foreground='#000080', relief='sunken')
-        finish_display = Label(finish_frame, textvariable=self.finish_value, font=("Arial", 14), foreground='#000080', relief='sunken')
-        bus_numb_display = Label(bus_numb_frame, textvariable=self.bus_numb_value, font=("Arial", 14), foreground='#000080', relief='sunken')
-        route_display = Label(route_frame, textvariable=self.route_value, font=("Arial", 14),  foreground='#000080', relief='sunken')
+        start_display = tk.Label(start_frame, textvariable=self.start_value,
+                                 font=("Arial", 14), foreground='#000080', relief='sunken')
+        finish_display = tk.Label(finish_frame, textvariable=self.finish_value,
+                                  font=("Arial", 14), foreground='#000080', relief='sunken')
+        bus_numb_display = tk.Label(bus_numb_frame, textvariable=self.bus_numb_value,
+                                    font=("Arial", 14), foreground='#000080', relief='sunken')
+        route_display = tk.Label(route_frame, textvariable=self.route_value,
+                                 font=("Arial", 14),  foreground='#000080', relief='sunken')
 
         start_display.pack()
         finish_display.pack()
@@ -72,9 +76,9 @@ class ImageEditor(Toplevel):
         start_frame.grid(row=0, column=1, padx=5, sticky='NSEW')
         finish_frame.grid(row=0, column=2, padx=5, sticky='NSEW')
         bus_numb_frame.grid(row=0, column=3, padx=5, sticky='NSEW')
-        self.del_btn.pack(side=LEFT, padx=10, pady=5)
-        self.back_btn.pack(side=LEFT, padx=10, pady=5)
-        self.next_btn.pack(side=LEFT, padx=10, pady=5)
+        self.del_btn.pack(side=tk.LEFT, padx=10, pady=5)
+        self.back_btn.pack(side=tk.LEFT, padx=10, pady=5)
+        self.next_btn.pack(side=tk.LEFT, padx=10, pady=5)
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -117,7 +121,7 @@ class ImageEditor(Toplevel):
             self.image_tk = ImageTk.PhotoImage(image)
             img_name = filepath.split("\\")[-1]
             self.title(f"Режим просмотра скринов: {img_name}")
-            self.canvas.create_image(0, 0, anchor=NW, image=self.image_tk)
+            self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image_tk)
             self.set_values(self.current_item)
 
     def set_values(self, item_id):

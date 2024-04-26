@@ -47,14 +47,14 @@ class Writer:
 
     def save(self):
         if self.rd.report_type == 'НС':
-                if os.path.exists('НС.json'):
-                    with open('НС.json') as f:
-                        paths = json.load(f)
-                        paths.update(self.screen_paths)
-                else:
-                    paths = self.screen_paths
-
-                with open('НС.json', 'w') as f:
-                    json.dump(paths, f, ensure_ascii=False, indent=4)
+            try:
+               self.write_to_json(self.screen_paths)
+            except Exception:
+                pass
 
         self.rd.wb.save(self.rd.file_path)
+
+
+    def write_to_json(self, paths):
+        with open('НС.json', 'w') as f:
+            json.dump(paths, f, ensure_ascii=False, indent=4)

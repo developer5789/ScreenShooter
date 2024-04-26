@@ -21,7 +21,7 @@ class Reader:
         self.wb = None
         self.total = 0
         self.report_type = None
-        self.json = {}
+        self.paths_json = {}
 
     def read(self):
         """Запускает чтение файла эксель с рейсами."""
@@ -66,8 +66,11 @@ class Reader:
 
     def read_json(self):
         if os.path.exists('НС.json'):
-            with open('НС.json') as f:
-                self.json = json.load(f)
+            try:
+                with open('НС.json') as f:
+                    self.paths_json = json.load(f)
+            except Exception:
+                pass
 
     @staticmethod
     def get_int(value):

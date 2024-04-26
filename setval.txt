@@ -16,7 +16,7 @@ function setval(number, datefrom, dateto){
 
             Ext.getCmp('panel-1320-splitter').setHeight(0);
         }
-        let numb_field = Ext.getCmp('textfield-1123')
+        let numb_field = Ext.getCmp('textfield-1123');
         Ext.getCmp('datefield-1033').setValue(datefrom);
         Ext.getCmp('datefield-1034').setValue(dateto);
 

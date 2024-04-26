@@ -297,12 +297,12 @@ class Table(ttk.Treeview):
                 if self.autoclicker.skip:
                     self.autoclicker.skip = False
                 elif self.autoclicker.state and track:
-                    self.autoclicker.focus_on_track(self)
                     self.execute_command(values, 1, False)
                 elif self.autoclicker.state and track is not None:
                     self.execute_command(values, 0, False)
                 elif self.autoclicker.state and track is None:
                     self.autoclicker.reset()
+                    time.sleep(0.5)
                     continue
                 else:
                     break
@@ -527,8 +527,8 @@ class Table(ttk.Treeview):
     def find_screen_in_json(self, rd, values, item):
         route_id = ';'.join(list(map(str, values[:6])))
         screen = values[6]
-        if route_id in rd.json:
-            screen_path = rd.json[route_id]
+        if route_id in rd.paths_json:
+            screen_path = rd.paths_json[route_id]
             exist_path = os.path.exists(screen_path)
 
             if screen == '1' and exist_path:

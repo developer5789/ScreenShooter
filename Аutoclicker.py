@@ -124,24 +124,10 @@ class AutoClicker:
                                 continue
                             break
 
-    def focus_on_track(self, table):
-        current_route = table.item(table.current_item)['values'][1]
-        if current_route != table.focused_route:
-            try:
-                self.browser.execute_script("""
-                                            let point = document.querySelector('#panel-1258-innerCt table');
-                                            point.click();
-                                            point.className = 'x-grid-item';
-                                            let flags = document.querySelectorAll('.ol-overlay-container');
-                                            for (let i = 0; i < flags.length; i++) {
-                                              flags[i].remove();
-                                            }
-                                            """)
-                time.sleep(2)
-                table.focused_route = current_route
-
-            except Exception as err:
-                pass
 
     def reset(self):
-        self.browser.execute_script('$("#button-1155-btnIconEl").click();')
+        self.browser.execute_script("""
+                                        $("#button-1155-btnIconEl").click();
+                                        Ext.getCmp('textfield-1123').setValue('');
+                                    """
+                                    )
