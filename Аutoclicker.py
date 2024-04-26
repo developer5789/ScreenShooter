@@ -114,7 +114,8 @@ class AutoClicker:
                         try:
                             response = self.browser.execute_cdp_cmd('Network.getResponseBody', {'requestId': request_id})
                             response_body = json.loads(response.get('body', ''))
-                            cords = list(response_body['result'].values())[0]
+                            values = list(response_body['result'].values())
+                            cords = values[0] if values else []
                             return len(cords) > 3
                         except exceptions.WebDriverException:
                             if err_counter < 3:
