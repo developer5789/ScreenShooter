@@ -80,6 +80,7 @@ class App(tk.Tk):
         """Запуск чтения файла с рейсами."""
         try:
             self.rd.read()
+            self.rd.read_final_reports
             activate_buttons(self.btn_panel.start_btn)
             self.make_dirs()
             if self.rd.report_type == 'НС':
@@ -97,7 +98,7 @@ class App(tk.Tk):
     def show_load_window(self):
         """Открывает окно загрузки файла с рейсами."""
         self.load_window = LoadWindow(self)
-        self.load_window.pack_items(1)
+        self.load_window.set()
 
     def make_dirs(self):
         if 'скрины' not in os.listdir():

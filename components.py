@@ -11,21 +11,10 @@ from tkinter import ttk
 from tkinter import filedialog as fd
 from myclasses import MyCheckboxTreeview, TableEntry
 import json
-from Аutoclicker import AutoClicker
 from selenium.common.exceptions import NoSuchWindowException
 from loger import Loger
 from messages import show_inf, show_error, askyesnocancel, last_item_message
 from image_editor import ImageEditor
-
-
-def get_config():
-    """Получаем найстроки пользователя из файла config.json"""
-    global config, x, y, width, height, profile_path, timeout
-    with open('config.json', encoding='utf-8') as f:
-        config = json.load(f)
-    x, y, width, height = config['screen_cords']
-    profile_path = config['profile_path']
-    timeout = config['timeout']
 
 
 def activate_buttons(*btns):
@@ -40,25 +29,7 @@ def block_buttons(*btns):
         btn['state'] = 'disabled'
 
 
-months = {
-    1: 'Январь',
-    2: 'Февраль',
-    3: 'Март',
-    4: 'Апрель',
-    5: 'Май',
-    6: 'Июнь',
-    7: 'Июль',
-    8: 'Август',
-    9: 'Сентябрь',
-    10: 'Октябрь',
-    11: 'Ноябрь',
-    12: 'Декабрь'
-}
-config = {}
-x, y, width, height = None, None, None, None
-timeout = None
-profile_path = ''
-get_config()
+config = {} # нужен ли?
 screen_paths = defaultdict(lambda: defaultdict(list))
 
 
@@ -210,7 +181,7 @@ class FilterWindow(tk.Toplevel):
     def set_filter_icon(self):
         if self.app.table.filters[self.colname] is None:
             filter_icon = self.app.table.icons['filter']
-            self.app.table.heading(self.colname, image=filter_icon)
+            self.app.table.heading(self.colname, image=filter_icon) # н № #
 
 
 class Table(ttk.Treeview):
@@ -272,62 +243,10 @@ class Table(ttk.Treeview):
         self.table_size = 0
         self.current_item = '0'
         self.editing_cell = None
-        self.autoclicker = AutoClicker(profile_path)
         self.filters = {col: None for col in self['displaycolumns']}
         self.focused_route = None
         self.empty_val = 0
 
-    def run_autoclicker(self):
-        """Запускается автоматический режим работы."""
-        self.autoclicker.state = 1
-        self.autoclicker.skip = False
-        block_buttons(self.app.btn_panel.play_btn)
-        activate_buttons(self.app.btn_panel.pause_btn, self.app.btn_panel.skip_btn)
-
-        while self.autoclicker.state:
-            try:
-                values = self.item(self.current_item)['values']
-                bus_numb = values[5]
-                datetime_from = self.get_datetime_str(values[0], values[3])
-                datetime_to = self.get_datetime_str(values[0], values[4], start=False)
-                self.autoclicker(bus_numb, datetime_from, datetime_to)
-                time.sleep(1.8)
-                track = self.autoclicker.check_track()
-
-                if self.autoclicker.skip:
-                    self.autoclicker.skip = False
-                elif self.autoclicker.state and track:
-                    self.execute_command(values, 1, False)
-                elif self.autoclicker.state and track is not None:
-                    self.execute_command(values, 0, False)
-                elif self.autoclicker.state and track is None:
-                    self.autoclicker.reset()
-                    time.sleep(0.5)
-                    continue
-                else:
-                    break
-
-                if not self.next_item():
-                    last_item_message()
-                    activate_buttons(self.app.btn_panel.play_btn)
-                    block_buttons(self.app.btn_panel.pause_btn)
-                    break
-
-            except NoSuchWindowException as err:
-                self.autoclicker.pause()
-                activate_buttons(self.app.btn_panel.play_btn)
-                block_buttons(self.app.btn_panel.pause_btn)
-                show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
-                Loger.enter_in_log(err)
-
-            except Exception as err:
-                self.autoclicker.pause()
-                activate_buttons(self.app.btn_panel.play_btn)
-                block_buttons(self.app.btn_panel.pause_btn)
-                show_error('Возникла ошибка при построении трека!Попробуйте перезагрузить страницу!')
-                Loger.enter_in_log(err)
-
-        block_buttons(self.app.btn_panel.skip_btn)
 
     def click_cell(self, event):
         col, selected_item = self.identify_column(event.x), self.focus()
@@ -411,22 +330,6 @@ class Table(ttk.Treeview):
 
         os.remove(screen_path)
         self.set(item, 7, '')
-
-    def click_item(self): # перевести на другой event
-        try:
-            values = self.item(self.current_item)['values']
-            bus_numb = values[5]
-            datetime_from = self.get_datetime_str(values[0], values[3])
-            datetime_to = self.get_datetime_str(values[0], values[4], start=False)
-            self.autoclicker(bus_numb, datetime_from, datetime_to)
-
-        except NoSuchWindowException as err:
-            show_error('Потеряна связь с браузером! Сделайте перезагрузку!')
-            Loger.enter_in_log(err)
-
-        except Exception as err:
-            show_error('Упс! Возникла ошибка при построении трека!')
-            Loger.enter_in_log(err)
 
     def execute_command(self, values=None, action=None, switch=True): #надо посмотреть
         """Выполняет переданную команду
@@ -664,13 +567,8 @@ class Table(ttk.Treeview):
             path = root_path + '\\' + dir
             screen_paths[path] = numb_dict
 
-
 class LoadWindow(tk.Toplevel):
-    """Класс описывает окно  для выбора файла с рейсами и
-    отображения """
-
     def __init__(self, app):
-        """Инициализация элементов, аттрибутов, настройка параметров окна."""
         super().__init__()
         self.app = app
         self.geometry("850x250")
@@ -679,76 +577,53 @@ class LoadWindow(tk.Toplevel):
         self.grab_set()
         self.report_name = None
         self.final_report_name = None
-        self.upload_btn = ttk.Button(self, text='Загрузить', state='disabled', command=self.next_step)
-        self.frame_1 = ttk.Frame(self, padding=3)
-        self.frame_2 = ttk.Frame(self, padding=3)
-        self.frame_3 = ttk.Frame(self, padding=3)
-        self.text_1 = tk.Text(self.frame_2, height=1, width=65, background='white', font=('Arial', 11))
-        self.btn_1 = ttk.Button(self.frame_2, text='Найти', command=lambda: self.select_file())
-        self.label_1 = ttk.Label(self.frame_1, text='Тип:', justify='left')
-        self.label_2 = ttk.Label(self.frame_2, text='Файл с неучтёнными рейсами:')
-        self.combobox_value = tk.StringVar()
-        self.combobox = ttk.Combobox(self.frame_1, textvariable=self.combobox_value,
-                                     values=('НС', 'Комиссия'))
-        self.progress_var = tk.IntVar(value=0)
-        self.progress_text_var = tk.StringVar()
-        self.progressbar = ttk.Progressbar(self.frame_3, orient="horizontal", length=650, variable=self.progress_var,
-                                           style='TProgressbar')
-        self.res_label = ttk.Label(self.frame_3, textvariable=self.progress_text_var, justify='left')
-        self.ok_btn = ttk.Button(self, text='Ок', state='disabled', command=self.end)
+        self.btn_upload = ttk.Button(self, text='Загрузить', state='disabled', command=self.close)
+        self.frame_1 = None
+        self.frame_2 = None
+        # self.frame_3 = ttk.Frame(self, padding=3)
 
-    def select_file(self):
-        """Выбирает путь до файла с рейсами."""
-        self.report_name = fd.askopenfilename()
-        self.text_1.insert(1.0, self.report_name)
-        self.upload_btn['state'] = 'normal'
+    def select_file(self, report_type=None):
+        if report_type == 'unaccounted_flights':
+            self.report_name = fd.askopenfilename()
+            self.text_1.insert(1.0, self.report_name)
+            self.check()
+        else:
+            self.final_report_name = fd.askopenfilename()
+            self.text_2.insert(1.0, self.final_report_name)
+            self.check()
 
-    def next_step(self):
-        """Размещает новые виджеты и переходит к этапу чтения файла с рейсами."""
-        self.del_first_step()
-        self.pack_items(2)
+    def check(self):
+        if self.final_report_name and self.report_name:
+            self.btn_upload['state'] = 'normal'
+
+    def close(self):
         self.app.rd.file_path = self.report_name
         self.app.rd.final_report_path = self.final_report_name
         Thread(target=self.app.run_reader).start()
 
-    def pack_items(self, step: int):
-        """Размещает элементы внутри окна
+    def set(self):
+        self.frame_1 = ttk.Frame(self, padding=3)
+        self.frame_2 = ttk.Frame(self, padding=3)
+        btn_1 = ttk.Button(self.frame_1, text='Найти', command=lambda: self.select_file('unaccounted_flights'))
+        btn_2 = ttk.Button(self.frame_2, text='Найти', command=lambda: self.select_file())
+        label_1 = ttk.Label(self.frame_1, text='Файл с неучтёнными рейсами:', justify='left')
+        label_2 = ttk.Label(self.frame_2, text='Файл со всеми рейсами:', justify='left')
+        self.text_1 = tk.Text(self.frame_1, height=1, width=65, background='white', font=('Arial', 11))
+        self.text_2 = tk.Text(self.frame_2, height=1, width=65, background='white', font=('Arial', 11))
+        label_1.grid(row=0, column=0, columnspan=2, sticky='we')
+        self.text_1.grid(row=1, column=0)
+        btn_1.grid(row=1, column=1)
+        label_2.grid(row=0, column=0, columnspan=2, sticky='we')
+        self.text_2.grid(row=1, column=0)
+        btn_2.grid(row=1, column=4)
+        self.frame_1.pack()
+        self.frame_2.pack()
+        self.btn_upload.pack(side='right', padx=10)
 
-        Аргументы:
-            step(int): параметр, обозначающий этап загрузки файла.
-        """
-        if step == 1:
-            self.label_1.grid(row=0, column=0, columnspan=2, sticky='we')
-            self.combobox.grid(row=1, column=0, sticky='we')
-            self.label_2.grid(row=2, column=0, columnspan=2, sticky='we')
-            self.text_1.grid(row=3, column=0)
-            self.btn_1.grid(row=3, column=1)
-            self.frame_1.pack(ipadx=225, pady=10)
-            self.frame_2.pack()
-            self.upload_btn.pack(side='right', padx=10)
-        else:
-            self.geometry("800x250")
-            self.res_label.grid(row=0, column=0)
-            self.progressbar.grid(row=1, column=0, columnspan=4, padx=70)
-            self.frame_3.grid(row=0, columnspan=3, pady=60)
-            self.ok_btn.grid(row=1, column=2)
-
-    def del_first_step(self):
-        """Удаляет виджеты этапа выбора файла."""
-        self.frame_1.destroy()
-        self.frame_2.destroy()
-        self.upload_btn.destroy()
 
     def end(self):
-        """Закрывает окно загрузки и переходит к заполнению таблицы."""
         self.destroy()
         self.app.table.fill_out_table(self.app.rd)
-
-    def update_progressbar(self, event):
-        """Увеличивает значение полосы прогресса на 10"""
-        cur_value = self.progress_var.get()
-        self.progress_var.set(cur_value + 10)
-
 
 class ResultPanel:
     """Класс описывает панель результатов, которая включает в себя
@@ -907,31 +782,17 @@ class ButtonPanel:
         self.button_style.configure("mystyle.TButton", font='Arial 13', padding=10)
         self.icons = {
             'screen_icon': Img(file=r'icons/icons8-камера-50.png'),
-            'pass_step_icon': Img(file=r'icons/icons8-пропустить-шаг-64.png'),
             'show_icon': Img(file=r'icons/icons8-глаз-50.png'),
             'cancel_icon': Img(file=r'icons/icons8-отмена-50.png'),
-            'play_icon': Img(file=r'icons/icons8-треугольник-50.png'),
-            'pause_icon': Img(file=r'icons/icons8-пауза-50.png'),
-            'stop_icon': Img(file=r'icons/icons8-стоп-50.png'),
-            'track_icon': Img(file=r'icons/icons8-трек-50.png'),
-            'chrome_icon': Img(file=r'icons/icons8-google-chrome-50.png'),
-            'download_icon': Img(file=r'icons/icons8-скачать-50.png'),
-            'settings_icon': Img(file=r'icons/icons8-настройка-50.png'),
-            'skip_icon': Img(file=r'icons/icons8-пропустить-шаг-64.png')
+            'video_icon': Img(file=r'icons/icons8-видеозвонок-64.png')
 
         }
         self.start_btn = None
         self.break_btn = None
         self.screen_btn = None
-        self.play_btn = None
-        self.pause_btn = None
-        self.stop_btn = None
-        self.cancel_btn = None
-        self.track_btn = None
+        self.del_btn = None
         self.show_btn = None
-        self.chrome_btn = None
-        self.settings_btn = None
-        self.skip_btn = None
+        self.video_btn = None
         self.buttons = []
         self.init_buttons()
 
@@ -947,40 +808,17 @@ class ButtonPanel:
                                      command=lambda: self.root.table.execute_command(action='1'), state='disabled',
                                      takefocus=False, style='mystyle.TButton'
                                      )
-        self.skip_btn = ttk.Button(self.btn_frame, text="Пропустить", image=self.icons['skip_icon'], compound='right',
-                                   command=self.root.table.autoclicker.skip_route, state='disabled',
-                                   takefocus=False, style='mystyle.TButton'
-                                   )
-        self.play_btn = ttk.Button(self.autoclicker_frame, image=self.icons['play_icon'],
-                                   compound='image', takefocus=False, state='disabled',
-                                   command=lambda: Thread(target=self.root.table.run_autoclicker).start()
-                                   )
-        self.pause_btn = ttk.Button(self.autoclicker_frame, image=self.icons['pause_icon'], state='disabled',
-                                    compound='image', takefocus=False, command=self.root.pause_autoclicker,
-                                    )
-        self.stop_btn = ttk.Button(self.autoclicker_frame, image=self.icons['stop_icon'], state='disabled',
-                                   compound='image', takefocus=False, command=self.root.close_autoclicker,
+        self.video_btn = ttk.Button(self.btn_frame, text="Видео", image=self.icons['video_icon'], compound='right',
+                                   state='disabled', takefocus=False, style='mystyle.TButton'
                                    )
         self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
                                      compound='image', takefocus=False, command=self.root.table.del_command,
                                      )
-        self.track_btn = ttk.Button(self.btn_frame, image=self.icons['track_icon'],
-                                    compound='image', takefocus=False, state='disabled',
-                                    command=self.root.table.click_item
-                                    )
         self.show_btn = ttk.Button(self.btn_frame, image=self.icons['show_icon'], compound='image',
                                    takefocus=False, command=lambda: ImageEditor(self.root), state='disabled',
                                    )
-        self.chrome_btn = ttk.Button(self.btn_frame, image=self.icons['chrome_icon'],
-                                     compound='image', takefocus=False, state='disabled',
-                                     command=lambda: Thread(target=self.root.run_webdriver).start()
-                                     )
-        self.settings_btn = ttk.Button(self.btn_frame, image=self.icons['settings_icon'], compound='image',
-                                       command=lambda: ConfigWindow(), takefocus=False
-                                       )
-        self.buttons.extend((self.start_btn, self.break_btn, self.screen_btn, self.cancel_btn,
-                             self.track_btn, self.play_btn,
-                             self.stop_btn, self.chrome_btn))
+
+        self.buttons.extend((self.start_btn, self.break_btn, self.screen_btn, self.cancel_btn))
 
     def pack_buttons(self):
         """Размещает все кнопки на панели."""
@@ -988,13 +826,8 @@ class ButtonPanel:
         self.btn_frame.grid(row=2, column=1, sticky='nsew', pady=130)
         self.start_btn.grid(row=1, column=0, sticky='nsew', pady=10, padx=10)
         self.break_btn.grid(row=1, column=1, sticky='nsew', pady=10, padx=10)
-        self.skip_btn.grid(row=2, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
+        self.video_btn.grid(row=2, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
         self.screen_btn.grid(row=3, column=0, columnspan=2, sticky='nsew', pady=5, padx=5)
-        self.play_btn.grid(row=0, column=0, padx=30, pady=10)
         self.cancel_btn.grid(row=3, column=4, pady=10, padx=20)
-        self.track_btn.grid(row=5, column=4, pady=10, padx=30, sticky='nsew')
         self.show_btn.grid(row=2, column=4, pady=10, padx=20)
-        self.pause_btn.grid(row=0, column=1, padx=30, pady=10)
-        self.stop_btn.grid(row=0, column=2, padx=30, pady=10)
-        self.chrome_btn.grid(row=4, column=4, pady=10, padx=20)
-        self.settings_btn.grid(row=6, column=4, pady=10, padx=30, sticky='nsew')
+

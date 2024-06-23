@@ -2,10 +2,10 @@ from collections import defaultdict
 import openpyxl
 import datetime
 import os
-import json
 
 
-class Reader:
+
+class  Msk_Reader:
     """Класс читает эксель с рейсами и заполняет словарь self.routes_dict"""
 
     def __init__(self, app, file_path=None):
@@ -17,17 +17,15 @@ class Reader:
         """
         self.app = app
         self.file_path = file_path
+        self.final_report_path = None
         self.routes_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         self.wb = None
         self.total = 0
-        self.report_type = None
         self.paths_json = {}
 
     def read(self):
         """Запускает чтение файла эксель с рейсами."""
         self.wb = openpyxl.load_workbook(self.file_path, keep_links=False, data_only=True)
-        self.report_type = self.app.load_window.combobox_value.get()
-        self.app.load_window.progress_text_var.set(f'Загрузка файла...')
         sheet = self.wb.active
         counter = 0
         step = sheet.max_row // 10
@@ -64,13 +62,6 @@ class Reader:
         self.app.load_window.progress_var.set(100)
         self.app.load_window.ok_btn['state'] = 'normal'
 
-    def read_json(self):
-        if os.path.exists('НС.json'):
-            try:
-                with open('НС.json') as f:
-                    self.paths_json = json.load(f)
-            except Exception:
-                pass
 
     @staticmethod
     def get_int(value):
@@ -79,14 +70,6 @@ class Reader:
         except Exception:
             return value if value is not None else ''
 
-    @staticmethod
-    def get_bus_numb(bus_numb: str):
-        """Возращает значение гос.номера ТС с пробелами."""
-        if not bus_numb:
-            return ''
-        bus_numb = bus_numb.replace(' ', '')
-        bus_numb = f'{bus_numb[:2]} {bus_numb[2:-2]} {bus_numb[-2:]}'
-        return bus_numb
 
     @staticmethod
     def convert_time_to_str(time_obj: datetime.time):
@@ -130,3 +113,103 @@ class Reader:
         if not value:
             return ''
         return str(value)
+
+
+class Reader:
+    def __init__(self, file_path=None):
+        self.file_path = file_path
+        self.final_report_path = None
+        self.dict_problems = defaultdict(lambda: defaultdict(list))
+        self.wb = None
+        self.date = None
+        self.total = 0
+
+    def read(self):
+        self.wb = openpyxl.load_workbook(self.file_path)
+        sheet = self.wb.active
+        counter = 0
+        for row in sheet.rows:
+            counter += 1
+            if row[0].value != 'Дата':
+                if self.date is None and row[0].value:
+                    self.convert_str_to_date(row[0].value)
+                route = row[1].value
+                if row[5].value:
+                    self.total += 1
+                    bus_numb = row[5].value
+                    self.dict_problems[route][bus_numb].append(
+                        {
+                            'date': f'{row[0].value.day:>02}.{row[0].value.month:>02}.{row[0].value.year}'
+                            if type(row[0].value) == datetime.datetime else row[0].value,
+                            'direction': row[2].value,
+                            'plan': self.convert_str_to_time(row[3].value),
+                            'fact': self.convert_str_to_time(row[4].value),
+                            'problem': row[7].value,
+                            'screen': None,
+                            'row_numb': counter,
+                            'queue': "",
+                            'bus_numb': row[5].value,
+                            'route': row[1].value,
+                        }
+                    )
+
+        for route in self.dict_problems:
+            for lst_flights in self.dict_problems[route].values():
+                lst_flights.sort(key=lambda item: self.get_seconds(item['plan']))
+
+
+
+    @staticmethod
+    def get_seconds(st):
+        if st:
+            hours, minutes = map(int, st.split(':'))
+            res = hours * 60 + minutes
+            return res
+        return 0
+
+    def convert_str_to_time(self, st: datetime.time):
+        if st is None or st == '':
+            return ''
+        if type(st) == datetime.time or type(st) == datetime.datetime:
+            return st.strftime('%H:%M')
+        try:
+            return datetime.time(*[int(val.strip()) for val in st.split(':')]).strftime('%H:%M')
+        except Exception:
+            return ''
+
+    def convert_str_to_date(self, st):
+        if type(st) == datetime.datetime:
+            self.date = st.strftime('%d.%m.%Y')
+        elif st.strip() and '.' in st:
+            self.date = st.strip()
+
+    def read_final_reports(self):
+        wb = openpyxl.load_workbook(self.final_report_path)
+        sheet = wb.active
+        cur_bus = None
+        search_res = False
+        for row in sheet.values:
+            if type(row[0]) == datetime.datetime and row[0].strftime('%d.%m.%Y') == self.date:
+                if not search_res:
+                    search_res = True
+                route = self.convert_route_into_numb(row[2].replace('-КРС', ''))
+                bus_numb = row[1]
+                queue_ = str(row[10])
+                if route in self.dict_problems and bus_numb in self.dict_problems[route] and bus_numb != cur_bus:
+                    for flight in self.dict_problems[route][bus_numb]:
+                        flight['queue'] = queue_
+                    cur_bus = bus_numb
+            if search_res and row[0].strftime('%d.%m.%Y') != self.date:
+                break
+
+    def convert_route_into_numb(self, st):
+        try:
+            return int(st)
+        except Exception:
+            return st
+
+    def get_flight(self):
+        for route in self.dict_problems:
+            for bus_numb in self.dict_problems[route]:
+                for position, dict in enumerate(self.dict_problems[route][bus_numb]):
+                    yield position, dict
