@@ -64,8 +64,10 @@ class App(tk.Tk):
     def run_reader(self):
         """Запуск чтения файла с рейсами."""
         try:
+            self.table.show_loading_label()
             self.rd.read()
             self.rd.read_final_reports()
+            self.table.loading_label.destroy()
             self.table.fill_out_table(self.rd)
             activate_buttons(self.btn_panel.start_btn)
 

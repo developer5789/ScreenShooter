@@ -634,6 +634,7 @@ class Table(ttk.Treeview):
         self.editing_cell = None
         self.filters = {col: None for col in self['displaycolumns']}
         self.focused_route = None
+        self.loading_label = None
         self.empty_val = 0
 
     def click_cell(self, event):
@@ -872,6 +873,15 @@ class Table(ttk.Treeview):
             datetime_obj += datetime.timedelta(minutes=2)
 
         return datetime_obj.strftime('%Y-%m-%d %H:%M')
+
+    def show_loading_label(self):
+        self.loading_label = ttk.Label(self, text="Загрузка данных...", background='white', font=("Arial", 14))
+        self.loading_label.place(relx=.5, rely=.5, anchor="c")
+
+
+
+
+
 
 class LoadWindow(tk.Toplevel):
     def __init__(self, app):
