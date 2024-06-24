@@ -145,7 +145,7 @@ class Reader:
                             'plan': self.convert_str_to_time(row[3].value),
                             'fact': self.convert_str_to_time(row[4].value),
                             'problem': row[7].value,
-                            'screen': None,
+                            'screen': row[8].value.strip() if row[8].value is not None else "",
                             'row_numb': counter,
                             'queue': "",
                             'bus_numb': row[5].value,
@@ -156,8 +156,6 @@ class Reader:
         for route in self.dict_problems:
             for lst_flights in self.dict_problems[route].values():
                 lst_flights.sort(key=lambda item: self.get_seconds(item['plan']))
-
-
 
     @staticmethod
     def get_seconds(st):
@@ -184,7 +182,7 @@ class Reader:
             self.date = st.strip()
 
     def read_final_reports(self):
-        wb = openpyxl.load_workbook(self.final_report_path)
+        wb = openpyxl.load_workbook(self.final_report_path, read_only=True)
         sheet = wb.active
         cur_bus = None
         search_res = False
@@ -208,7 +206,7 @@ class Reader:
         except Exception:
             return st
 
-    def get_flight(self):
+    def get_route(self):
         for route in self.dict_problems:
             for bus_numb in self.dict_problems[route]:
                 for position, dict in enumerate(self.dict_problems[route][bus_numb]):

@@ -14,7 +14,8 @@ class App(tk.Tk):
         self.load_window = None
         self.res_panel = ResultPanel(self)
         self.table = Table(self, column=Table.columns, show='headings', padding=10,
-                           displaycolumns=('date', "route", "direction", "start", 'finish', 'bus_numb', 'screen'))
+                           displaycolumns=("date", "queue", "direction", "start_plan",
+                                           "start_fact", "bus_numb", "problem", "screen"))
         self.scroll = tk.Scrollbar(command=self.table.yview)
         self.table.config(yscrollcommand=self.scroll.set)
         self.btn_panel = ButtonPanel(self)
@@ -38,17 +39,6 @@ class App(tk.Tk):
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(2, weight=1)
 
-    def pause_autoclicker(self):
-        """Останавливает автокликер."""
-        self.table.autoclicker.pause()
-        block_buttons(self.btn_panel.pause_btn, self.btn_panel.skip_btn)
-        activate_buttons(self.btn_panel.play_btn)
-
-    def close_autoclicker(self):
-        """Останавливает автокликер, закрывает браузер."""
-        self.table.autoclicker.stop()
-        self.btn_panel.play_btn['state'] = 'normal'
-        self.btn_panel.pause_btn['state'] = 'disabled'
 
     def finish(self):
         """Операции после закрытия главного окна приложения."""
@@ -68,23 +58,16 @@ class App(tk.Tk):
         except AttributeError:
             pass
         finally:
-            if self.table.autoclicker:
-                self.table.autoclicker.stop()
             self.destroy()
 
-    def run_webdriver(self):
-        if not self.table.autoclicker:
-            self.table.autoclicker.run_webdriver()
 
     def run_reader(self):
         """Запуск чтения файла с рейсами."""
         try:
             self.rd.read()
-            self.rd.read_final_reports
+            self.rd.read_final_reports()
+            self.table.fill_out_table(self.rd)
             activate_buttons(self.btn_panel.start_btn)
-            self.make_dirs()
-            if self.rd.report_type == 'НС':
-                self.table.get_paths()
 
         except PermissionError as err:
             show_error("Открыт файл эксель с неучтенными рейсами. Закройте файл и перезапустите приложение!")
@@ -100,11 +83,6 @@ class App(tk.Tk):
         self.load_window = LoadWindow(self)
         self.load_window.set()
 
-    def make_dirs(self):
-        if 'скрины' not in os.listdir():
-            os.mkdir('скрины')
-        if self.rd.report_type not in os.listdir('скрины'):
-            os.mkdir(fr'скрины\{self.rd.report_type}')
 
 
 if __name__ == "__main__":

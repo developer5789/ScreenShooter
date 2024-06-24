@@ -18,147 +18,6 @@ editing_state = False
 END = False
 
 
-class EditWindow(tk.Toplevel):
-    def __init__(self, values=None):
-        global editing_state
-        super().__init__()
-        self.values = values
-        self.geometry("330x450")
-        self.title('Редактировать')
-        self.resizable(False, False)
-        self.grab_set()
-        self.geometry("+{}+{}".format(root.winfo_rootx() + 50, root.winfo_rooty() + 50))
-        self.route_frame = ttk.Frame(self)
-        self.route_label = ttk.Label(self.route_frame, text="Наряд:")
-        self.route_entry = tk.Entry(self.route_frame, justify='left', width=35)
-        self.direction_frame = ttk.Frame(self, padding=3)
-        self.direction_label = tk.Label(self.direction_frame, text="Направление:")
-        self.direction_entry = tk.Entry(self.direction_frame, width=35)
-        self.plan_frame = ttk.Frame(self, padding=3)
-        self.plan_label = tk.Label(self.plan_frame, text="План.время начала рейса:")
-        self.plan_entry = tk.Entry(self.plan_frame, width=35)
-        self.fact_frame = ttk.Frame(self, padding=3)
-        self.fact_label = tk.Label(self.fact_frame, text="Факт.время начала рейса:")
-        self.fact_entry = tk.Entry(self.fact_frame, width=35)
-        self.bus_numb_frame = ttk.Frame(self, padding=3)
-        self.bus_numb_label = tk.Label(self.bus_numb_frame, text="Гаражный номер:")
-        self.bus_numb_entry = tk.Entry(self.bus_numb_frame, width=35)
-        self.problem_frame = ttk.Frame(self, padding=3)
-        self.problem_label = tk.Label(self.problem_frame, text="Проблема:")
-        self.problem_entry = tk.Entry(self.problem_frame, width=35)
-        self.screen_frame = ttk.Frame(self, padding=3)
-        self.screen_label = tk.Label(self.screen_frame, text="Скрин:")
-        self.screen_entry = tk.Entry(self.screen_frame, width=35)
-        self.btn_frame = ttk.Frame(self, padding=3)
-        self.btn_edit = ttk.Button(self.btn_frame, text='Редактировать', command=self.edit)
-        self.fields = [self.route_entry, self.direction_entry, self.plan_entry, self.fact_entry,
-                  self.bus_numb_entry, self.problem_entry, self.screen_entry]
-        self.pack_items()
-        self.fill_out_fields()
-        editing_state = True
-        res_panel.state = 0
-        self.protocol('WM_DELETE_WINDOW', self.finish_editing)
-
-    def finish_editing(self):
-        global editing_state
-        res_panel.state = 1
-        editing_state = False
-        self.destroy()
-
-    def pack_items(self):
-        self.route_frame.grid(row=0, column=0, padx=20)
-        self.direction_frame.grid(row=1, column=0, padx=20)
-        self.plan_frame.grid(row=2, column=0, padx=20)
-        self.fact_frame.grid(row=3, column=0, padx=20)
-        self.bus_numb_frame.grid(row=4, column=0, padx=20)
-        self.problem_frame.grid(row=5, column=0, padx=20)
-        self.screen_frame.grid(row=6, column=0, padx=20)
-        self.btn_frame.grid(row=7, column=0, pady=20, sticky='nswe',)
-
-        self.route_label.pack(anchor='w')
-        self.route_entry.pack()
-        self.direction_label.pack(anchor='w')
-        self.direction_entry.pack()
-        self.plan_label.pack(anchor='w')
-        self.plan_entry.pack()
-        self.fact_label.pack(anchor='w')
-        self.fact_entry.pack()
-        self.bus_numb_label.pack(anchor='w')
-        self.bus_numb_entry.pack()
-        self.problem_label.pack(anchor='w')
-        self.problem_entry.pack()
-        self.screen_label.pack(anchor='w')
-        self.screen_entry.pack()
-        self.btn_edit.pack(side=tk.RIGHT, padx=15)
-
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=1)
-        self.rowconfigure(3, weight=1)
-        self.rowconfigure(4, weight=1)
-        self.rowconfigure(5, weight=1)
-        self.rowconfigure(6, weight=1)
-        self.rowconfigure(7, weight=1)
-        self.columnconfigure(0, weight=1)
-
-    def fill_out_fields(self):
-        for i, field in enumerate(self.fields):
-            field.insert(0, str(self.values[i]))
-
-    def get_data(self):
-        res = []
-        for field in self.fields:
-            value = field.get()
-            try:
-                value = int(value) if '_' not in str(value) else str(value)
-            except ValueError:
-                pass
-            res.append(value)
-        return res
-
-    @staticmethod
-    def del_screen_or_not():
-        screen_path = table.item(str(table.current_item))['values'][7]
-        screen_name = screen_path.split('\\')[-1]
-        res = messagebox.askyesno(title='Уведомление', message=f'Удалить скриншот "{screen_name}"?')
-        if res:
-            os.remove(screen_path)
-            table.set(str(table.current_item), 7, '')
-
-    def edit(self):
-        item_id = str(table.current_item)
-        old_values = table.item(str(table.current_item))['values']
-        edited_values = self.get_data()
-        if old_values[:7] != edited_values:
-            for i, value in enumerate(self.get_data()):
-                table.set(str(table.current_item), i, value)
-            new_queue = edited_values[0]
-            new_route = self.get_route(new_queue)
-            table.set(str(table.current_item), 8, new_route)
-            self.change_counter(old_values, edited_values)
-            if item_id not in table.edited_items:
-                table.edited_items[item_id] = {
-                    'old_values': old_values,
-                }
-        self.finish_editing()
-
-    def get_route(self, queue):
-        if '_' in str(queue):
-            route = queue.split('_')[0]
-        else:
-            route = queue
-        try:
-            return int(route)
-        except ValueError:
-            return route.strip()
-
-    @staticmethod
-    def change_counter(old_values, edited_values):
-        if not old_values[:7][-1] and str(edited_values[-1]).strip():
-            res_panel.add_flight()
-        if old_values[:7][-1] and not str(edited_values[-1]).strip():
-            res_panel.subtract_flight()
-
 
 class Table(ttk.Treeview):
 
@@ -260,7 +119,7 @@ class Table(ttk.Treeview):
         if str(self.current_item) not in self.edited_items:
             self.edited_items[str(self.current_item)] = {
                 'old_values': values,
-            }
+            } # не нужен
 
     def check(self):
         screen_path = self.item(str(self.current_item))['values'][7]
@@ -732,11 +591,10 @@ button_style.configure("mystyle.TButton",
 
                        )
 
-columns = ("queue", "direction", "plan", 'fact', 'bus_numb',
-           'problem', 'screen', 'screen_path', 'route',
-           'position', 'edited', 'row_id', 'date', 'colour')
+columns = ("date", "queue", "direction", "start_plan", 'start_fact', 'bus_numb', 'problem'
+               'screen', 'screen_path', 'position', 'row_id', 'colour', 'route_dir', 'route')
 table = Table(column=columns, show='headings', padding=10,
-              displaycolumns=("queue", "direction", "plan", 'fact', 'bus_numb', 'problem', 'screen'))
+              displaycolumns=("date", "queue", "direction", "start_plan", 'start_fact', 'bus_numb', 'problem', 'screen'))
 table.bind('<<TreeviewSelect>>', table.item_selected)
 button1 = ttk.Button(button_frame, text="Работать", state='disabled', command=res_panel.start, takefocus=False,
                      style='mystyle.TButton')

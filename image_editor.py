@@ -30,7 +30,7 @@ class ImageEditor(tk.Toplevel):
         self.next_btn = ttk.Button(self.btn_frame, image=self.icons['next'], command=self.next_image,
                                   compound='image', takefocus=False)
 
-        self.image_path = self.table.item(self.current_item)['values'][7]
+        self.image_path = self.table.item(self.current_item)['values'][8]
         self.image = None
         self.image_tk = None
         self.start_value = tk.StringVar()
@@ -48,10 +48,10 @@ class ImageEditor(tk.Toplevel):
         finish_frame = ttk.Frame(self.main_frame,  borderwidth=1, padding=3, style='My.TLabel')
         bus_numb_frame = ttk.Frame(self.main_frame,  borderwidth=1, padding=3, style='My.TLabel')
 
-        route_label = ttk.Label(route_frame, text="Маршрут", font=("Arial", 12, 'bold'), style='My.TLabel')
-        start_label = ttk.Label(start_frame, text="Начало", font=("Arial", 12, 'bold'), style='My.TLabel')
-        finish_label = ttk.Label(finish_frame, text="Конец", font=("Arial", 12, 'bold'), style='My.TLabel')
-        bus_numb_label = ttk.Label(bus_numb_frame, text="Гос.номер", font=("Arial", 12, 'bold'), style='My.TLabel')
+        route_label = ttk.Label(route_frame, text="Наряд", font=("Arial", 12, 'bold'), style='My.TLabel')
+        start_label = ttk.Label(start_frame, text="План", font=("Arial", 12, 'bold'), style='My.TLabel')
+        finish_label = ttk.Label(finish_frame, text="Факт", font=("Arial", 12, 'bold'), style='My.TLabel')
+        bus_numb_label = ttk.Label(bus_numb_frame, text="ТС", font=("Arial", 12, 'bold'), style='My.TLabel')
 
         route_label.pack()
         start_label.pack()
@@ -98,7 +98,7 @@ class ImageEditor(tk.Toplevel):
             while item:
                 item = switch_func(item)
                 if item:
-                    filename = self.table.item(item)['values'][7]
+                    filename = self.table.item(item)['values'][8]
                     if filename:
                         self.current_item = item
                         self.open_image(filename)

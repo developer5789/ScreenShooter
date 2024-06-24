@@ -5,30 +5,24 @@ import os
 class Writer:
     """Класс записывает данные о проделанной работе в файл эксель."""
     def __init__(self, reader):
-        self.rd = reader
+        self.reader = reader
         self.screen_paths = {}
 
     def write(self):
         """Запускает запись данных в обьект self.reader.wb."""
-        for i in range(self.rd.app.table.table_size):
+        for i in range(self.reader.app.table.table_size):
             item_id = str(i)
-            values = self.rd.app.table.item(item_id)['values']
+            values = self.reader.app.table.item(item_id)['values']
             row_numb = values[10]
-            start_time = self.convert_into_datetime(values[3], '%H.%M.%S')
 
-            if self.rd.report_type == 'НС':
-                item_id = ';'.join(list(map(str, values[:6])))
-                self.screen_paths[item_id] = values[7]
-
-            self.rd.wb.active[f'B{row_numb}'] = values[1]
-            self.rd.wb.active[f'C{row_numb}'] = self.convert_into_datetime(values[0], '%d.%m.%Y')
-            self.rd.wb.active[f'D{row_numb}'] = values[2]
-            self.rd.wb.active[f'E{row_numb}'] = start_time
-            self.rd.wb.active[f'F{row_numb}'] = start_time
-            self.rd.wb.active[f'H{row_numb}'] = start_time
-            self.rd.wb.active[f'I{row_numb}'] = self.convert_into_datetime(values[4], '%H.%M.%S')
-            self.rd.wb.active[f'L{row_numb}'] = values[5]
-            self.rd.wb.active[f'S{row_numb}'] = values[6]
+            self.reader.wb.active[f'B{row_numb}'] = values[8]
+            self.reader.wb.active[f'C{row_numb}'] = values[1]
+            self.reader.wb.active[f'D{row_numb}'] = values[2]
+            self.reader.wb.active[f'E{row_numb}'] = values[3]
+            self.reader.wb.active[f'F{row_numb}'] = values[4]
+            self.reader.wb.active[f'H{row_numb}'] = values[5]
+            self.reader.wb.active[f'I{row_numb}'] = values[6]
+        self.reader.wb.save(self.reader.file_path)
 
         self.save()
 
@@ -55,6 +49,3 @@ class Writer:
         self.rd.wb.save(self.rd.file_path)
 
 
-    def write_to_json(self, paths):
-        with open('НС.json', 'w') as f:
-            json.dump(paths, f, ensure_ascii=False, indent=4)
