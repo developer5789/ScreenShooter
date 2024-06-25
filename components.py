@@ -311,61 +311,53 @@ class Table(ttk.Treeview):
             ans = self.askdel(screen_path, root_dir, self.app, self.current_item)
             self.next_item() if ans is not None else None
 
-    def askdel(self, screen_path, root_dir, parent, item):
-        ans = askyesnocancel(parent)
-        if ans:
-            self.del_screen(screen_path, root_dir, item)
-            self.set(item, 6, 0)
-            self.color('red_colored', item)
-        elif ans is not None:
-            self.del_screen(screen_path, root_dir, item)
-            self.set(self.current_item, 6, '')
-            self.color('white_colored', item)
-        return ans
+    def cancel(self):
+        screen, screen_path = self.get_values()[7:9]
+        if screen or screen_path:
+            self.del_screen(screen_path)
+            self.set(self.current_item, 7, '')
+            self.next_item()
+            self.color('white_colored', self.current_item)
+            if screen:
+                self.app.res_panel.subtract_route()
 
-    def del_screen(self, screen_path: str, root_dir: str, item: str):
+
+    def del_screen(self, screen_path):
         """Удаление скриншота
 
         Аргументы:
             screen_path(str): путь к скрину
             root_dir(str): путь к директории скрина
         """
-        if self.app.rd.report_type == 'НС':
-            screen_name = screen_path.split('\\')[-1]
-            numb, indx = screen_name[:-4].split(' - ')
-            numb_dict = screen_paths[root_dir][numb]
 
-            if int(indx) < numb_dict['max_value']:
-                numb_dict['empty_positions'].append(indx)
-            else:
-                numb_dict['max_value'] -= 1
+        if screen_path:
+            os.remove(screen_path)
+            self.set(self.current_item, 8, '')
 
-        os.remove(screen_path)
-        self.set(item, 7, '')
 
-    def execute_command(self, values=None, action=None, switch=True): #надо посмотреть
+    def execute_command(self, action=None): #надо посмотреть
         """Выполняет переданную команду
 
         Аргументы:
             values(list, None): список значений ячеек строки,
             action(str, None): номер исполняемой команды (1-скрин)
             """
-        if values is None:
-            values = self.item(self.current_item)['values']
-        screen = str(values[6])
-        if action:
+
+        values = self.item(self.current_item)['values']
+        screen, screen_path = str(values[7]), values[8]
+        if action == "Скрин":
             screen_path = self.make_screenshot(values)
-            self.set(self.current_item, 6, action)
-            self.set(self.current_item, 7, screen_path)
+            self.set(self.current_item, 7, "Есть")
+            self.set(self.current_item, 8, screen_path)
             self.color('green_colored', self.current_item)
 
-        else:
-            self.del_screen(values[7], values[13], self.current_item) if values[7] else None
-            self.set(self.current_item, 6, action)
-            self.color('red_colored', self.current_item)
+        if action == "Видео":
+            self.del_screen(screen_path) if values[8] else None
+            self.set(self.current_item, 7, action)
+            self.color('green_colored', self.current_item)
 
-        if switch:
-            self.next_item()
+
+        self.next_item()
         if not screen:
             self.app.res_panel.add_route()
 
@@ -437,64 +429,36 @@ class Table(ttk.Treeview):
             self.empty_val += 1
 
 
-    def make_screenshot(self, values: list):
-        """Делает скрин трека
+    # def make_screenshot(self, values: list):
+    #     """Делает скрин трека
+    #
+    #     Аргументы:
+    #         values(list): список значений ячеек строки,
+    #         overwrite(bool): параметр, показывающий перезаписывается ли скрин.
+    #     """
+    #     screen_path = values[7]
+    #
+    #     if not screen_path:
+    #         screen_path = self.get_screen_path(values)
+    #
+    #     screen = pg.screenshot(region=(x, y, width, height))
+    #     screen.save(screen_path)
+    #
+    #     return screen_path
+    #
 
-        Аргументы:
-            values(list): список значений ячеек строки,
-            overwrite(bool): параметр, показывающий перезаписывается ли скрин.
-        """
-        screen_path = values[7]
+    def make_screenshot(self, values):
+        date, route = values[0], values[13]
 
-        if not screen_path:
-            screen_path = self.get_screen_path(values)
+        if date not in os.listdir('скрины'):
+            os.mkdir(rf'скрины\{date}')
+        if str(route) not in os.listdir(fr'скрины\{date}'):
+            os.mkdir(rf'скрины\{date}\{route}')
+        screnshot_name = f'{values[3].replace(":", "_")} {values[5]} {values[6]}'
+        pg.screenshot(rf'скрины\{date}\{route}\{screnshot_name}.jpg')
 
-        screen = pg.screenshot(region=(x, y, width, height))
-        screen.save(screen_path)
+        return rf'скрины\{date}\{route}\{screnshot_name}.jpg'
 
-        return screen_path
-    def get_screen_path(self, values: list):
-        """Возвращает путь до сделанного скриншота
-
-        Аргументы:
-            values(list): список значений ячеек строки
-        """
-        root_dir = values[13]
-        if not os.path.exists(root_dir):
-            os.makedirs(root_dir)
-
-        if self.app.rd.report_type == 'НС':
-            bus_numb = values[5]
-            indx = self.get_screen_indx(bus_numb, root_dir)
-            return root_dir + '\\' + f'{bus_numb} - {indx}.jpg'
-        else:
-            route_numb = values[12]
-            screen_path = root_dir + '\\' + f'{route_numb}.jpg'
-
-        return screen_path
-
-
-    @staticmethod
-    def get_datetime_str(date_st, time_st, start=True):
-        """Делает смещение времени начала и конца рейса на 2 минуты.
-          Возвращает строку со временем в формате 'Год-Месяц-День Часы:Минуты
-
-           Аргументы:
-                date_st(str): строка с датой,
-                time_st(str): строка со временем,
-                start(bool): начало или конец рейса.
-        """
-        datetime_st = f'{date_st} {time_st}'
-        datetime_obj = datetime.datetime.strptime(datetime_st, '%d.%m.%Y %H:%M')
-        if datetime_obj.hour < 2:
-            datetime_obj += datetime.timedelta(hours=24)
-
-        if start:
-            datetime_obj -= datetime.timedelta(minutes=2)
-        else:
-            datetime_obj += datetime.timedelta(minutes=2)
-
-        return datetime_obj.strftime('%Y-%m-%d %H:%M')
 
     def show_loading_label(self):
         self.loading_label = ttk.Label(self, text="Загрузка данных...", background='white', font=("Arial", 14))
@@ -547,8 +511,8 @@ class LoadWindow(tk.Toplevel):
         btn_2 = ttk.Button(self.frame_2, text='Найти', command=lambda: self.select_file())
         label_1 = ttk.Label(self.frame_1, text='Файл с неучтёнными рейсами:', justify='left')
         label_2 = ttk.Label(self.frame_2, text='Файл со всеми рейсами:', justify='left')
-        self.text_1 = tk.Text(self.frame_1, height=1, width=65, background='white', font=('Arial', 11))
-        self.text_2 = tk.Text(self.frame_2, height=1, width=65, background='white', font=('Arial', 11))
+        self.text_1 = tk.Text(self.frame_1, height=1, width=60, background='white', font=('Arial', 10))
+        self.text_2 = tk.Text(self.frame_2, height=1, width=60, background='white', font=('Arial', 10))
         label_1.grid(row=0, column=0, columnspan=2, sticky='we')
         self.text_1.grid(row=1, column=0)
         btn_1.grid(row=1, column=1)
@@ -719,7 +683,7 @@ class ResultPanel:
         """Уменьшает кол-во разобранных рейсов на единицу."""
         self.completed_counter.set(self.completed_counter.get() - 1)
         self.remaining_counter.set(self.routes_counter.get() - self.completed_counter.get())
-        speed = self.speed_counter.get()
+        speed = 2 if self.speed_counter.get() == '0' else self.speed_counter.get()
         predict_value = 60 * self.remaining_counter.get() / float(speed)
         self.predict_counter.set(str(timedelta(seconds=int(predict_value))))
         progress_value = 100 * self.completed_counter.get() / self.routes_counter.get()
@@ -799,20 +763,21 @@ class ButtonPanel:
                                     command=self.root.res_panel.pause, takefocus=False, style='mystyle.TButton'
                                     )
         self.screen_btn = ttk.Button(self.btn_frame, text="Скрин", image=self.icons['screen_icon'], compound='right',
-                                     command=lambda: self.root.table.execute_command(action='1'), state='disabled',
+                                     command=lambda: self.root.table.execute_command(action='Скрин'), state='disabled',
                                      takefocus=False, style='mystyle.TButton'
                                      )
         self.video_btn = ttk.Button(self.btn_frame, text="Видео", image=self.icons['video_icon'], compound='right',
-                                   state='disabled', takefocus=False, style='mystyle.TButton'
+                                    command=lambda: self.root.table.execute_command(action='Видео'),
+                                    state='disabled', takefocus=False, style='mystyle.TButton'
                                    )
         self.cancel_btn = ttk.Button(self.btn_frame, image=self.icons['cancel_icon'], state='disabled',
-                                     compound='image', takefocus=False, command=self.root.table.del_command,
+                                     compound='image', takefocus=False, command=self.root.table.cancel,
                                      )
         self.show_btn = ttk.Button(self.btn_frame, image=self.icons['show_icon'], compound='image',
                                    takefocus=False, command=lambda: ImageEditor(self.root), state='disabled',
                                    )
 
-        self.buttons.extend((self.start_btn, self.break_btn, self.screen_btn, self.cancel_btn))
+        self.buttons.extend((self.start_btn, self.break_btn, self.screen_btn, self.cancel_btn, self.video_btn))
 
     def pack_buttons(self):
         """Размещает все кнопки на панели."""
