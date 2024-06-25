@@ -144,7 +144,7 @@ class Reader:
                             'direction': row[2].value,
                             'plan': self.convert_str_to_time(row[3].value),
                             'fact': self.convert_str_to_time(row[4].value),
-                            'problem': row[7].value,
+                            'problem': str(row[7].value).strip() if row[7].value is not None else '',
                             'screen': row[8].value.strip() if row[8].value is not None else "",
                             'row_numb': counter,
                             'queue': "",

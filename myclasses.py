@@ -1,5 +1,6 @@
 from ttkwidgets import CheckboxTreeview
-from tkinter.ttk import Style, Entry
+from tkinter.ttk import Style, Entry, Label
+
 
 class MyCheckboxTreeview(CheckboxTreeview): # фильтрацию надо доделать
     def __init__(self, filter_window, parent, **kwargs):
