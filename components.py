@@ -667,6 +667,12 @@ class ResultPanel:
         progress_value = 100 * self.completed_counter.get() / self.routes_counter.get()
         self.progress_var.set(int(progress_value))
 
+        speed = self.speed_counter.get()
+        if speed != "0":
+            predict_value = 60 * self.remaining_counter.get() / float(speed)
+            self.predict_counter.set(str(timedelta(seconds=int(predict_value))))
+
+
     def add_route(self):
         """Увеличивает кол-во разобранных рейсов на единицу."""
         self.completed_counter.set(self.completed_counter.get() + 1)

@@ -181,7 +181,7 @@ class Reader:
         elif st.strip() and '.' in st:
             self.date = st.strip()
 
-    def read_final_reports(self):
+    def read_final_reports(self): # надо переделать под разные даты
         wb = openpyxl.load_workbook(self.final_report_path, read_only=True)
         sheet = wb.active
         cur_bus = None
