@@ -146,8 +146,15 @@ class TableEntry(Entry):
         self.destroy()
 
     def enter(self, event):
-        value = self.get()
+        current_value = self.table.item(self.item)["values"][self.col]
+        value = self.get().strip()
         self.table.set(self.item, self.col, value)
         self.destroy()
+
+        if current_value and not value:
+            self.app.res_panel.subtract_route()
+        elif not current_value and value:
+            self.app.res_panel.add_route()
+
 
 

@@ -285,7 +285,8 @@ class Table(ttk.Treeview):
             values = self.item(item_id)['values']
             if self.match(filtered_cols, values):
                 self.move(item_id, '', i)
-                if values[7].strip():
+                val = values[7].strip() if type(values[7]) != int else values[7]
+                if val:
                     checked_routes += 1
                 filtered_routes += 1
             else:
