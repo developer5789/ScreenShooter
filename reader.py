@@ -119,9 +119,9 @@ class Reader:
     def __init__(self, file_path=None):
         self.file_path = file_path
         self.final_report_path = None
-        self.dict_problems = defaultdict(lambda: defaultdict(list))
+        self.dict_problems = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         self.wb = None
-        self.date = None
+        self.dates = []
         self.total = 0
 
     def read(self):
@@ -131,31 +131,34 @@ class Reader:
         for row in sheet.rows:
             counter += 1
             if row[0].value != 'Дата':
-                if self.date is None and row[0].value:
-                    self.convert_str_to_date(row[0].value)
+                route_date = str(row[0].value).strip() if row[0].value is not None else None
+
+                if route_date not in self.dates:
+                    self.dates.append(route_date)
+
                 route = row[1].value
-                if row[5].value:
-                    self.total += 1
-                    bus_numb = row[5].value
-                    self.dict_problems[route][bus_numb].append(
-                        {
-                            'date': f'{row[0].value.day:>02}.{row[0].value.month:>02}.{row[0].value.year}'
-                            if type(row[0].value) == datetime.datetime else row[0].value,
-                            'direction': row[2].value,
-                            'plan': self.convert_str_to_time(row[3].value),
-                            'fact': self.convert_str_to_time(row[4].value),
-                            'problem': str(row[7].value).strip() if row[7].value is not None else '',
-                            'screen': row[8].value.strip() if row[8].value is not None else "",
-                            'row_numb': counter,
-                            'queue': "",
-                            'bus_numb': row[5].value,
-                            'route': row[1].value,
-                        }
+                self.total += 1
+                bus_numb = row[5].value
+                self.dict_problems[route_date][route][bus_numb].append(
+                    {
+                        'date': f'{row[0].value.day:>02}.{row[0].value.month:>02}.{row[0].value.year}'
+                        if type(row[0].value) == datetime.datetime else row[0].value,
+                        'direction': row[2].value,
+                        'plan': self.convert_str_to_time(row[3].value),
+                        'fact': self.convert_str_to_time(row[4].value),
+                        'problem': str(row[7].value).strip() if row[7].value is not None else '',
+                        'screen': row[8].value.strip() if row[8].value is not None else "",
+                        'row_numb': counter,
+                        'queue': "",
+                        'bus_numb': row[5].value if row[5].value is not None else "",
+                        'route': row[1].value,
+                    }
                     )
 
-        for route in self.dict_problems:
-            for lst_flights in self.dict_problems[route].values():
-                lst_flights.sort(key=lambda item: self.get_seconds(item['plan']))
+        for route_date in self.dict_problems:
+            for route in self.dict_problems[route_date]:
+                for lst_flights in self.dict_problems[route_date][route].values():
+                    lst_flights.sort(key=lambda item: self.get_seconds(item['plan']))
 
     @staticmethod
     def get_seconds(st):
@@ -175,11 +178,13 @@ class Reader:
         except Exception:
             return ''
 
-    def convert_str_to_date(self, st):
-        if type(st) == datetime.datetime:
-            self.date = st.strftime('%d.%m.%Y')
+    def convert_date_to_str(self, st):
+        if type(st) in (datetime.datetime, datetime.date):
+            return st.strftime('%d.%m.%Y')
+        elif type(st) == int:
+            return
         elif st.strip() and '.' in st:
-            self.date = st.strip()
+            return st.strip()
 
     def read_final_reports(self): # надо переделать под разные даты
         wb = openpyxl.load_workbook(self.final_report_path, read_only=True)
@@ -187,18 +192,17 @@ class Reader:
         cur_bus = None
         search_res = False
         for row in sheet.values:
-            if type(row[0]) == datetime.datetime and row[0].strftime('%d.%m.%Y') == self.date:
-                if not search_res:
-                    search_res = True
+            if type(row[0]) == datetime.datetime and row[0].strftime('%d.%m.%Y') in self.dates:
+                route_date = row[0].strftime('%d.%m.%Y')
                 route = self.convert_route_into_numb(row[2].replace('-КРС', ''))
                 bus_numb = row[1]
                 queue_ = str(row[10])
-                if route in self.dict_problems and bus_numb in self.dict_problems[route] and bus_numb != cur_bus:
-                    for flight in self.dict_problems[route][bus_numb]:
+                if (route in self.dict_problems[route_date] and bus_numb in self.dict_problems[route_date][route]
+                        and bus_numb != cur_bus):
+                    for flight in self.dict_problems[route_date][route][bus_numb]:
                         flight['queue'] = queue_
                     cur_bus = bus_numb
-            if search_res and row[0].strftime('%d.%m.%Y') != self.date:
-                break
+
 
     def convert_route_into_numb(self, st):
         try:
@@ -206,8 +210,11 @@ class Reader:
         except Exception:
             return st
 
+
     def get_route(self):
-        for route in self.dict_problems:
-            for bus_numb in self.dict_problems[route]:
-                for position, dict in enumerate(self.dict_problems[route][bus_numb]):
-                    yield position, dict
+        """Функция-генератор данных о рейсах из словаря self.dict_broblems."""
+        for date in self.dict_problems:
+            for route in self.dict_problems[date]:
+                for bus_numb in self.dict_problems[date][route]:
+                    for position, dict in enumerate(self.dict_problems[date][route][bus_numb]):
+                        yield position, dict

@@ -299,6 +299,9 @@ class Table(ttk.Treeview):
         self.check()
 
     def next_item(self):
+        if self.editing_cell:
+            self.editing_cell.enter()
+
         next_item = self.next(self.current_item)
         if next_item:
             self.selection_set((next_item,))
@@ -361,6 +364,7 @@ class Table(ttk.Treeview):
         self.next_item()
         if not screen:
             self.app.res_panel.add_route()
+
 
     def check(self):
         """Проверка на наличие скрина."""
@@ -557,7 +561,7 @@ class ResultPanel:
         self.predict_counter = tk.StringVar(value='00:00:00')
         self.time_counter = 0
         self.state = 0
-        self.last_action = 0
+        self.last_action = None
 
     def prepare_panel(self):
         """Размещает элементы на панели."""
@@ -689,9 +693,10 @@ class ResultPanel:
         """Увеличивает кол-во разобранных рейсов на единицу."""
         self.completed_counter.set(self.completed_counter.get() + 1)
         self.remaining_counter.set(self.routes_counter.get() - self.completed_counter.get())
-        speed = self.calc_speed()
-        predict_value = 60 * self.remaining_counter.get() / speed
-        self.predict_counter.set(str(timedelta(seconds=int(predict_value))))
+        if self.last_action is not None:
+            speed = self.calc_speed()
+            predict_value = 60 * self.remaining_counter.get() / speed
+            self.predict_counter.set(str(timedelta(seconds=int(predict_value))))
         progress_value = 100 * self.completed_counter.get() / self.routes_counter.get()
         self.progress_var.set(int(progress_value))
         if not self.remaining_counter.get():
@@ -701,9 +706,10 @@ class ResultPanel:
         """Уменьшает кол-во разобранных рейсов на единицу."""
         self.completed_counter.set(self.completed_counter.get() - 1)
         self.remaining_counter.set(self.routes_counter.get() - self.completed_counter.get())
-        speed = 2 if self.speed_counter.get() == '0' else self.speed_counter.get()
-        predict_value = 60 * self.remaining_counter.get() / float(speed)
-        self.predict_counter.set(str(timedelta(seconds=int(predict_value))))
+        if self.last_action is not None:
+            speed = 2 if self.speed_counter.get() == '0' else self.speed_counter.get()
+            predict_value = 60 * self.remaining_counter.get() / float(speed)
+            self.predict_counter.set(str(timedelta(seconds=int(predict_value))))
         progress_value = 100 * self.completed_counter.get() / self.routes_counter.get()
         self.progress_var.set(int(progress_value))
 

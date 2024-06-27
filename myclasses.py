@@ -145,7 +145,7 @@ class TableEntry(Entry):
         self.app.scroll.unbind('<ButtonPress>')
         self.destroy()
 
-    def enter(self, event):
+    def enter(self, event=None):
         current_value = self.table.item(self.item)["values"][self.col]
         value = self.get().strip()
         self.table.set(self.item, self.col, value)
@@ -155,6 +155,8 @@ class TableEntry(Entry):
             self.app.res_panel.subtract_route()
         elif not current_value and value:
             self.app.res_panel.add_route()
+
+        self.table.editing_cell = None
 
 
 
