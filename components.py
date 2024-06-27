@@ -429,6 +429,17 @@ class Table(ttk.Treeview):
         elif not screen:
             self.empty_val += 1
 
+    def askdel(self, screen_path, parent, item):
+        ans = askyesnocancel(parent)
+        if ans:
+            self.del_screen(screen_path, item)
+            self.set(item, 6, '')
+            self.color('red_colored', item)
+        elif ans is not None:
+            self.del_screen(screen_path,  item)
+            self.set(self.current_item, 6, '')
+            self.color('white_colored', item)
+        return ans
 
     # def make_screenshot(self, values: list):
     #     """Делает скрин трека
