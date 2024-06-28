@@ -85,9 +85,9 @@ class App(tk.Tk):
         self.load_window = LoadWindow(self)
         self.load_window.set()
 
-    def screen_by_space(self):
+    def screen_by_space(self, event):
         if self.res_panel.state:
-            self.table.execute_command('Есть')
+            self.table.execute_command('Скрин')
 
 
 if __name__ == "__main__":
