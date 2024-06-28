@@ -139,11 +139,11 @@ class Table(ttk.Treeview):
         self.heading('screen', text="Скрин", anchor='w', image=self.icons['screen'],
                      command=lambda: FilterWindow(self.app, 'screen'))
 
-        self.column("date", width=140, stretch=True)
+        self.column("date", width=125, stretch=True)
         self.column("queue", width=90, stretch=True)
         self.column("direction", stretch=True, width=140)
-        self.column("start_plan", stretch=True, width=60)
-        self.column("start_fact", stretch=True, width=60)
+        self.column("start_plan", stretch=True, width=70)
+        self.column("start_fact", stretch=True, width=70)
         self.column("bus_numb", stretch=True, width=90)
         self.column("problem", stretch=True, width=250)
         self.column("screen", stretch=True, width=90)
