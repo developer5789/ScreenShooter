@@ -1,9 +1,9 @@
 from components import *
 from reader import Reader
 from writer import Writer
-from messages import open_warning
-
-
+from messages import open_warning, show_error
+import keyboard
+from loger import Loger
 class App(tk.Tk):
     """Класс описывает главное окно приложения."""
     def __init__(self, *args, **kwargs):
@@ -85,9 +85,13 @@ class App(tk.Tk):
         self.load_window = LoadWindow(self)
         self.load_window.set()
 
+    def screen_by_space(self):
+        if self.res_panel.state:
+            self.table.execute_command('Есть')
 
 
 if __name__ == "__main__":
     app = App()
+    keyboard.on_press_key('space', app.screen_by_space)
     app.mainloop()
 

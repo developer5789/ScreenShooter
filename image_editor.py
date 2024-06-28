@@ -1,7 +1,6 @@
-from tkinter import ttk
+
 import tkinter as tk
 from PIL import Image, ImageTk
-from messages import last_screen_message
 
 
 class ImageEditor(tk.Toplevel):

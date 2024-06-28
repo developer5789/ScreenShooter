@@ -11,8 +11,7 @@ from tkinter import ttk
 from tkinter import filedialog as fd
 from myclasses import MyCheckboxTreeview, TableEntry
 import json
-from loger import Loger
-from messages import show_inf, show_error, askyesnocancel, last_item_message
+from messages import show_inf
 from image_editor import ImageEditor
 
 
@@ -253,7 +252,6 @@ class Table(ttk.Treeview):
         self.loading_label = None
         self.empty_val = 0
 
-
     def click_cell(self, event):
         col, selected_item = self.identify_column(event.x), self.focus()
         text = self.item(selected_item)['values'][int(col[1:]) - 1]
@@ -308,12 +306,6 @@ class Table(ttk.Treeview):
             self.yview_scroll(1, 'units')
         return next_item
 
-    def del_command(self):
-        values = self.item(self.current_item)['values']
-        screen_path, root_dir = values[7], values[13]
-        if screen_path:
-            ans = self.askdel(screen_path, root_dir, self.app, self.current_item)
-            self.next_item() if ans is not None else None
 
     def cancel(self):
         screen, screen_path = self.get_values()[7:9]
@@ -365,7 +357,6 @@ class Table(ttk.Treeview):
         if not screen:
             self.app.res_panel.add_route()
 
-
     def check(self):
         """Проверка на наличие скрина."""
         screen_path = self.item(self.current_item)['values'][8]
@@ -383,7 +374,6 @@ class Table(ttk.Treeview):
         """Заливка после выполнения команды"""
 
         self.item(item, tags=(colour,))
-
 
     def fill_out_table(self, rd):
         """Заполняет таблицу значениями из прочитанного документа excel
@@ -433,36 +423,6 @@ class Table(ttk.Treeview):
         elif not screen:
             self.empty_val += 1
 
-    def askdel(self, screen_path, parent, item):
-        ans = askyesnocancel(parent)
-        if ans:
-            self.del_screen(screen_path, item)
-            self.set(item, 6, '')
-            self.color('red_colored', item)
-        elif ans is not None:
-            self.del_screen(screen_path,  item)
-            self.set(self.current_item, 6, '')
-            self.color('white_colored', item)
-        return ans
-
-    # def make_screenshot(self, values: list):
-    #     """Делает скрин трека
-    #
-    #     Аргументы:
-    #         values(list): список значений ячеек строки,
-    #         overwrite(bool): параметр, показывающий перезаписывается ли скрин.
-    #     """
-    #     screen_path = values[7]
-    #
-    #     if not screen_path:
-    #         screen_path = self.get_screen_path(values)
-    #
-    #     screen = pg.screenshot(region=(x, y, width, height))
-    #     screen.save(screen_path)
-    #
-    #     return screen_path
-    #
-
     def make_screenshot(self, values):
         date, route = values[0], values[13]
 
@@ -474,7 +434,6 @@ class Table(ttk.Treeview):
         pg.screenshot(rf'скрины\{date}\{route}\{screnshot_name}.jpg')
 
         return rf'скрины\{date}\{route}\{screnshot_name}.jpg'
-
 
     def show_loading_label(self):
         self.loading_label = ttk.Label(self, text="Загрузка данных...", background='white', font=("Arial", 14))
