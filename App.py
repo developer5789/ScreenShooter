@@ -4,6 +4,7 @@ from writer import Writer
 from messages import open_warning, show_error
 import keyboard
 from loger import Loger
+
 class App(tk.Tk):
     """Класс описывает главное окно приложения."""
     def __init__(self, *args, **kwargs):
@@ -86,8 +87,12 @@ class App(tk.Tk):
         self.load_window.set()
 
     def screen_by_space(self, event):
-        if self.res_panel.state:
-            self.table.execute_command('Скрин')
+        try:
+            if self.res_panel.state:
+                self.table.execute_command('Скрин')
+        except Exception as err:
+            Loger.enter_in_log(err)
+
 
 
 if __name__ == "__main__":

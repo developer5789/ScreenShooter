@@ -27,88 +27,6 @@ def block_buttons(*btns):
         btn['state'] = 'disabled'
 
 
-config = {} # нужен ли?
-screen_paths = defaultdict(lambda: defaultdict(list))
-
-
-class ConfigWindow(tk.Toplevel):
-    """Класс описывает окно пользовательских настроек"""
-
-    def __init__(self, *args, **kwargs):
-        """Инициализация элементов внутри окна и аттрибутов"""
-        super().__init__(*args, **kwargs)
-        self.geometry("400x200")
-        self.title('Настройки')
-        self.resizable(False, False)
-        self.grab_set()
-        self.path_frame = ttk.Frame(self)
-        self.path_label = ttk.Label(self.path_frame, text="Путь до папки профиля Chrome:")
-        self.path_entry = tk.Entry(self.path_frame, justify='left', width=60)
-        self.cords_frame = ttk.Frame(self, padding=3)
-        self.cords_label = tk.Label(self.cords_frame, text="Область скриншота:")
-        self.cords_entry = tk.Entry(self.cords_frame, width=35)
-        self.timeout_frame = ttk.Frame(self, padding=3)
-        self.timeout_label = tk.Label(self.timeout_frame, text="Timeout (сек): ")
-        self.timeout_var = tk.IntVar()
-        self.timeout_spinbox = tk.Spinbox(self.timeout_frame, state='readonly',
-                                          to=10.0, textvariable=self.timeout_var)
-        self.btn_frame = ttk.Frame(self, padding=2)
-        self.btn_set = ttk.Button(self.btn_frame, text='Применить', command=self.apply)
-        self.pack_items()
-        self.protocol('WM_DELETE_WINDOW', self.destroy)
-        self.values = []
-        self.fill_out_fields()
-
-    def pack_items(self):
-        """Размещает элементы внутри окна."""
-        self.path_frame.grid(row=0, column=0, padx=20)
-        self.cords_frame.grid(row=1, column=0, padx=20, sticky='nswe')
-        self.btn_frame.grid(row=3, column=0, pady=5, sticky='nswe', )
-        self.timeout_frame.grid(row=2, column=0, padx=20, sticky='nswe')
-
-        self.path_label.pack(anchor='w', pady=3)
-        self.path_entry.pack()
-        self.cords_label.pack(anchor='w', pady=3)
-        self.cords_entry.pack(anchor='w')
-        self.timeout_label.pack(anchor='w')
-        self.timeout_spinbox.pack(anchor='w')
-        self.btn_set.pack(side=tk.RIGHT, padx=15)
-
-    def fill_out_fields(self):
-        """Заполняет поля значениями из словаря 'config'"""
-        profile_path = config['profile_path']
-        screen_cords = str(config['screen_cords']).strip('[]')
-        timeout_val = config['timeout']
-        self.values.extend((profile_path, screen_cords, timeout_val))
-        self.path_entry.insert('end', profile_path)
-        self.cords_entry.insert('end', screen_cords)
-        self.timeout_var.set(timeout_val)
-
-    def apply(self):
-        """Сравнивает новые настройки со старыми и устанавливает новые,если отличаются."""
-        new_values = [self.path_entry.get(),
-                      [int(val.strip()) for val in self.cords_entry.get().split(',')],
-                      self.timeout_var.get()
-                      ]
-        if self.values != new_values:
-            self.set_settings(new_values)
-        self.destroy()
-
-    def set_settings(self, new_values: list):
-        """Записывает новые значения пользовательских настроек """
-        global x, y, width, height, timeout, profile_path
-        for i, key in enumerate(config):
-            config[key] = new_values[i]
-        timeout = config["timeout"]
-        x, y, width, height = config["screen_cords"]
-        profile_path = config["profile_path"]
-        self.save_settings()
-
-    @staticmethod
-    def save_settings():
-        """Сохраняет настройки, записывая в файл 'config.json'"""
-        with open('config.json', 'w', encoding='utf-8') as f:
-            json.dump(config, f, ensure_ascii=False, indent=4)
 
 
 class FilterWindow(tk.Toplevel):
@@ -425,7 +343,8 @@ class Table(ttk.Treeview):
 
     def make_screenshot(self, values):
         date, route = values[0], values[13]
-
+        if "скрины" not in os.listdir():
+            os.mkdir(rf'скрины')
         if date not in os.listdir('скрины'):
             os.mkdir(rf'скрины\{date}')
         if str(route) not in os.listdir(fr'скрины\{date}'):
